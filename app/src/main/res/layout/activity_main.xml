@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal" android:background="#070A06" android:layout_width="match_parent" android:layout_height="match_parent">
-    <TextView android:text="OMNITRIX" android:textColor="#B8FF3D" android:textSize="34sp" android:textStyle="bold" android:layout_marginTop="30dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-    <TextView android:text="COLORFIT CALIBER 2881 • R204.5.8" android:textColor="#AAB3A3" android:textSize="12sp" android:layout_marginTop="6dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-    <Button android:id="@+id/scanButton" android:text="SCAN FOR CALIBER" android:layout_marginTop="34dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
-    <TextView android:id="@+id/status" android:text="Ready to scan" android:textColor="#FFFFFF" android:textSize="16sp" android:gravity="center" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
-    <TextView android:id="@+id/devices" android:textColor="#DCE5D8" android:textSize="15sp" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
-</LinearLayout>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#070A06">
+    <LinearLayout android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal" android:layout_width="match_parent" android:layout_height="match_parent">
+        <TextView android:text="OMNITRIX" android:textColor="#B8FF3D" android:textSize="34sp" android:textStyle="bold" android:layout_marginTop="30dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        <TextView android:text="COLORFIT CALIBER 2881 • R204.5.8" android:textColor="#AAB3A3" android:textSize="12sp" android:layout_marginTop="6dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        <Button android:id="@+id/qrButton" android:text="SCAN WATCH QR" android:layout_marginTop="28dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/scanButton" android:text="SCAN FOR CALIBER" android:layout_marginTop="10dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/status" android:text="Ready — scan the QR shown on your watch" android:textColor="#FFFFFF" android:textSize="16sp" android:gravity="center" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/qrValue" android:textColor="#B8FF3D" android:textSize="13sp" android:layout_marginTop="12dp" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/devices" android:textColor="#DCE5D8" android:textSize="15sp" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+    </LinearLayout>
+    <androidx.camera.view.PreviewView android:id="@+id/preview" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent" />
+    <TextView android:id="@+id/scanOverlay" android:text="ALIGN THE WATCH QR INSIDE THIS SCREEN" android:textColor="#B8FF3D" android:textStyle="bold" android:gravity="center" android:background="#66070A06" android:visibility="gone" android:layout_gravity="top" android:padding="22dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <Button android:id="@+id/closeScanner" android:text="CLOSE" android:visibility="gone" android:layout_gravity="bottom|center_horizontal" android:layout_marginBottom="36dp" android:layout_width="180dp" android:layout_height="wrap_content" />
+</FrameLayout>
