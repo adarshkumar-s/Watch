@@ -24,31 +24,31 @@ jobs:
       # downloading raw logs.
       - name: Unit tests (QR parser, packet codec, correlation, state machine, log)
         run: |
-          set -o pipefail
-          ./gradlew :app:testDebugUnitTest --stacktrace 2>&1 | tee /tmp/g-test.log
-          rc=${PIPESTATUS[0]}
+          rc=0
+          ./gradlew :app:testDebugUnitTest --stacktrace 2>&1 | tee /tmp/g-test.log || rc=$?
           if [ $rc -ne 0 ]; then
-            grep -nE "^e: |FAILED|> " /tmp/g-test.log | tail -60 > /tmp/g-sel.log || true
-            tail -n 22 /tmp/g-test.log >> /tmp/g-sel.log
-            cat /tmp/g-sel.log | sed 's/"/'"'"'/g' | while IFS= read -r l; do echo "::error::$l"; done
+            { grep -nE "^e: |FAILED|> " /tmp/g-test.log | tail -40 || echo "(no pattern matches)";
+              tail -n 22 /tmp/g-test.log; } | sed 's/"/'"'"'/g' \
+              | while IFS= read -r l; do echo "::error::$l"; done
             exit $rc
           fi
 
       - name: Android lint (report only)
         run: |
-          set -o pipefail
-          ./gradlew :app:lintDebug 2>&1 | tee /tmp/g-lint.log || true
-          grep -E "Error: |Warning: " /tmp/g-lint.log | head -30 | while IFS= read -r l; do echo "::notice::$l"; done || true
+          rc=0
+          ./gradlew :app:lintDebug 2>&1 | tee /tmp/g-lint.log || rc=$?
+          { grep -E "Error: |Warning: " /tmp/g-lint.log | tail -12 || echo "(no lint error lines)"; } \
+            | while IFS= read -r l; do echo "::notice::$l"; done
+          echo "lint exit=$rc (report only)"
 
       - name: Assemble diagnostic APK
         run: |
-          set -o pipefail
-          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee /tmp/g-apk.log
-          rc=${PIPESTATUS[0]}
+          rc=0
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee /tmp/g-apk.log || rc=$?
           if [ $rc -ne 0 ]; then
-            grep -nE "^e: |FAILED|> " /tmp/g-apk.log | tail -60 > /tmp/g-sela.log || true
-            tail -n 22 /tmp/g-apk.log >> /tmp/g-sela.log
-            cat /tmp/g-sela.log | sed 's/"/'"'"'/g' | while IFS= read -r l; do echo "::error::$l"; done
+            { grep -nE "^e: |FAILED|> " /tmp/g-apk.log | tail -40 || echo "(no pattern matches)";
+              tail -n 22 /tmp/g-apk.log; } | sed 's/"/'"'"'/g' \
+              | while IFS= read -r l; do echo "::error::$l"; done
             exit $rc
           fi
           ls -la app/build/outputs/apk/debug/
