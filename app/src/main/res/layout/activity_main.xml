@@ -1,15 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#070A06">
-    <LinearLayout android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal" android:layout_width="match_parent" android:layout_height="match_parent">
-        <TextView android:text="OMNITRIX" android:textColor="#B8FF3D" android:textSize="34sp" android:textStyle="bold" android:layout_marginTop="30dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-        <TextView android:text="COLORFIT CALIBER 2881 • R204.5.8" android:textColor="#AAB3A3" android:textSize="12sp" android:layout_marginTop="6dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-        <Button android:id="@+id/qrButton" android:text="SCAN WATCH QR" android:layout_marginTop="28dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Button android:id="@+id/scanButton" android:text="SCAN FOR CALIBER" android:layout_marginTop="10dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/status" android:text="Ready — scan the QR shown on your watch" android:textColor="#FFFFFF" android:textSize="16sp" android:gravity="center" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/qrValue" android:textColor="#B8FF3D" android:textSize="13sp" android:layout_marginTop="12dp" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <TextView android:id="@+id/devices" android:textColor="#DCE5D8" android:textSize="15sp" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#080B09">
+    <LinearLayout android:orientation="vertical" android:paddingStart="22dp" android:paddingEnd="22dp" android:paddingTop="28dp" android:paddingBottom="18dp" android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:orientation="horizontal" android:gravity="center_vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <TextView android:text="OMNITRIX" android:textColor="#B8FF3D" android:textSize="30sp" android:textStyle="bold" android:letterSpacing="0.08" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                <TextView android:text="CALIBER 2881  •  BLE CONTROL" android:textColor="#8D988E" android:textSize="11sp" android:layout_marginTop="4dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
+            <TextView android:id="@+id/connectionPill" android:text="READY" android:textColor="#B8FF3D" android:textSize="10sp" android:textStyle="bold" android:gravity="center" android:background="#182113" android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="7dp" android:paddingBottom="7dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <TextView android:text="WATCH CONNECTION" android:textColor="#69736B" android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.12" android:layout_marginTop="30dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+        <Button android:id="@+id/qrButton" android:text="SCAN WATCH QR" android:textAllCaps="false" android:textSize="15sp" android:textStyle="bold" android:backgroundTint="#B8FF3D" android:textColor="#0A0D09" android:layout_marginTop="10dp" android:layout_width="match_parent" android:layout_height="54dp" />
+        <Button android:id="@+id/scanButton" android:text="Find nearby Caliber" android:textAllCaps="false" android:textSize="14sp" android:backgroundTint="#1A201B" android:textColor="#DDE7DD" android:layout_marginTop="10dp" android:layout_width="match_parent" android:layout_height="50dp" />
+
+        <TextView android:id="@+id/status" android:text="Ready — scan the QR shown on your watch" android:textColor="#E8EFE8" android:textSize="15sp" android:gravity="center" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/qrValue" android:textColor="#B8FF3D" android:textSize="11sp" android:layout_marginTop="8dp" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView android:text="DEVICE" android:textColor="#69736B" android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.12" android:layout_marginTop="24dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/devices" android:text="No watch connected yet." android:textColor="#C9D3C9" android:textSize="14sp" android:lineSpacingExtra="4dp" android:background="#101510" android:padding="16dp" android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+
+        <TextView android:text="OMNITRIX  •  CALIBER LINK" android:textColor="#3E483F" android:textSize="9sp" android:gravity="center" android:layout_marginTop="12dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
     </LinearLayout>
+
     <androidx.camera.view.PreviewView android:id="@+id/preview" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent" />
-    <TextView android:id="@+id/scanOverlay" android:text="ALIGN THE WATCH QR INSIDE THIS SCREEN" android:textColor="#B8FF3D" android:textStyle="bold" android:gravity="center" android:background="#66070A06" android:visibility="gone" android:layout_gravity="top" android:padding="22dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
-    <Button android:id="@+id/closeScanner" android:text="CLOSE" android:visibility="gone" android:layout_gravity="bottom|center_horizontal" android:layout_marginBottom="36dp" android:layout_width="180dp" android:layout_height="wrap_content" />
+    <TextView android:id="@+id/scanOverlay" android:text="ALIGN WATCH QR IN THE FRAME" android:textColor="#B8FF3D" android:textStyle="bold" android:gravity="center" android:background="#AA080B09" android:visibility="gone" android:layout_gravity="top" android:paddingTop="24dp" android:paddingBottom="24dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <Button android:id="@+id/closeScanner" android:text="Close scanner" android:textAllCaps="false" android:textStyle="bold" android:textColor="#0A0D09" android:backgroundTint="#B8FF3D" android:visibility="gone" android:layout_gravity="bottom|center_horizontal" android:layout_marginBottom="30dp" android:layout_width="180dp" android:layout_height="52dp" />
 </FrameLayout>
