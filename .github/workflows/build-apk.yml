@@ -19,15 +19,18 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Gradle output is scanned for compiler/test errors and re-emitted as workflow
-      # annotations so failures are visible without downloading raw logs.
+      # On failure, the log tail is re-emitted as workflow annotations (error annotations
+      # are surfaced by the checks API, capped ~10/step) so failures are visible without
+      # downloading raw logs.
       - name: Unit tests (QR parser, packet codec, correlation, state machine, log)
         run: |
           set -o pipefail
           ./gradlew :app:testDebugUnitTest --stacktrace 2>&1 | tee /tmp/g-test.log
           rc=${PIPESTATUS[0]}
           if [ $rc -ne 0 ]; then
-            grep -E "^e: |error:|FAILED|Error:" /tmp/g-test.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            grep -nE "^e: |FAILED|> " /tmp/g-test.log | tail -60 > /tmp/g-sel.log || true
+            tail -n 22 /tmp/g-test.log >> /tmp/g-sel.log
+            cat /tmp/g-sel.log | sed 's/"/'"'"'/g' | while IFS= read -r l; do echo "::error::$l"; done
             exit $rc
           fi
 
@@ -43,7 +46,9 @@ jobs:
           ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee /tmp/g-apk.log
           rc=${PIPESTATUS[0]}
           if [ $rc -ne 0 ]; then
-            grep -E "^e: |error:|FAILED|Error:" /tmp/g-apk.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            grep -nE "^e: |FAILED|> " /tmp/g-apk.log | tail -60 > /tmp/g-sela.log || true
+            tail -n 22 /tmp/g-apk.log >> /tmp/g-sela.log
+            cat /tmp/g-sela.log | sed 's/"/'"'"'/g' | while IFS= read -r l; do echo "::error::$l"; done
             exit $rc
           fi
           ls -la app/build/outputs/apk/debug/
