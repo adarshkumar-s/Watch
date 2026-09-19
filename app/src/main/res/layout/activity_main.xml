@@ -20,7 +20,7 @@
         <TextView android:text="DEVICE" android:textColor="#69736B" android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.12" android:layout_marginTop="24dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
         <TextView android:id="@+id/devices" android:text="No watch connected yet." android:textColor="#C9D3C9" android:textSize="14sp" android:lineSpacingExtra="4dp" android:background="#101510" android:padding="16dp" android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
 
-        <TextView android:text="OMNITRIX  •  CALIBER LINK" android:textColor="#3E483F" android:textSize="9sp" android:gravity="center" android:layout_marginTop="12dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:text="OMNITRIX  •  CALIBER LINK  •  v0.4 BLE" android:textColor="#3E483F" android:textSize="9sp" android:gravity="center" android:layout_marginTop="12dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
     </LinearLayout>
 
     <androidx.camera.view.PreviewView android:id="@+id/preview" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent" />
