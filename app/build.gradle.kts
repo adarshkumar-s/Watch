@@ -36,14 +36,13 @@ android {
         // Static analysis report is uploaded by CI; do not block the APK build on it.
         abortOnError = false
     }
+}
 
-    // Name the diagnostic APK per project convention: OMNITRIX-debug.apk
-    applicationVariants.all {
-        if (buildType.name == "debug") {
-            outputs.all {
-                val apkOutput = this as? com.android.build.gradle.internal.api.ApkVariantOutputImpl
-                apkOutput?.outputFileName = "OMNITRIX-debug.apk"
-            }
+// Name the diagnostic APK per project convention: OMNITRIX-debug.apk
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("OMNITRIX-debug.apk")
         }
     }
 }
