@@ -68,6 +68,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set +e  # nothing in this reporting step may abort before the comment is posted
           APK_FOUND=$(ls app/build/outputs/apk/debug/OMNITRIX-debug.apk 2>/dev/null && echo yes || echo NO)
           {
             echo "**OMNITRIX build report** ($(git rev-parse --short HEAD))"
@@ -88,7 +89,7 @@ jobs:
             if [ "$(cat /tmp/rc/lint 2>/dev/null)" != "0" ]; then
               echo '**lint log tail**'; echo '```'; tail -n 40 /tmp/g-lint.log; echo '```'
             fi
-          } > /tmp/report.md
+          } > /tmp/report.md 2>/dev/null || true
           gh api repos/${{ github.repository }}/commits/${{ github.sha }}/comments \
-            -F body=@/tmp/report.md >/dev/null 2>&1 || true
+            -F body=@/tmp/report.md || true
           test "$(cat /tmp/rc/test 2>/dev/null)" = "0" -a "$(cat /tmp/rc/apk 2>/dev/null)" = "0"
