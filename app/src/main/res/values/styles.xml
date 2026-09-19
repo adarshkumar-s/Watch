@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.Omnitrix" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#B8FF3D</item>
+        <item name="android:navigationBarColor">#070A06</item>
+        <item name="android:statusBarColor">#070A06</item>
+    </style>
+</resources>
