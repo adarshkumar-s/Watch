@@ -5,6 +5,8 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -24,19 +26,34 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
+import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.regex.Pattern
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        private val SERVICE_UUID = UUID.fromString("16186f00-0000-1000-8000-00807f9b34fb")
+        private val NOTIFY_UUID = UUID.fromString("16186f01-0000-1000-8000-00807f9b34fb")
+        private val WRITE_UUID = UUID.fromString("16186f02-0000-1000-8000-00807f9b34fb")
+        private val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+        private val PING = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x01, 0x00)
+        private val ACK_OK = byteArrayOf(0x00, 0x00, 0x01, 0x01, 0x00, 0x00)
+        private val ACK_END = byteArrayOf(0x00, 0x00, 0x01, 0x00, 0x00, 0x00)
+    }
+
     private lateinit var scanner: BluetoothLeScanner
     private lateinit var status: TextView
     private lateinit var devices: TextView
     private lateinit var preview: PreviewView
     private lateinit var overlay: TextView
     private lateinit var closeScanner: Button
+    private lateinit var connectionPill: TextView
+    private lateinit var scanButton: Button
     private val seen = linkedMapOf<String, BluetoothDevice>()
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private var gatt: BluetoothGatt? = null
+    private var writeChar: BluetoothGattCharacteristic? = null
+    private var notifyChar: BluetoothGattCharacteristic? = null
     private var scanningQr = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +64,8 @@ class MainActivity : ComponentActivity() {
         preview = findViewById(R.id.preview)
         overlay = findViewById(R.id.scanOverlay)
         closeScanner = findViewById(R.id.closeScanner)
+        connectionPill = findViewById(R.id.connectionPill)
+        scanButton = findViewById(R.id.scanButton)
         val manager = getSystemService(BluetoothManager::class.java)
         scanner = manager.adapter.bluetoothLeScanner
 
@@ -66,12 +85,20 @@ class MainActivity : ComponentActivity() {
     private fun startScan() {
         closeQrScanner()
         seen.clear()
-        devices.text = ""
-        status.text = "Scanning for ColorFit Caliber…"
+        devices.text = "Looking for a nearby ColorFit Caliber…"
+        status.text = "Scanning nearby devices"
+        connectionPill.text = "SEARCHING"
         scanner.startScan(callback)
         window.decorView.postDelayed({
             scanner.stopScan(callback)
-            status.text = if (seen.isEmpty()) "No matching BLE device found" else "Scan complete — select a detected device by scanning its QR"
+            if (seen.isEmpty()) {
+                status.text = "No Caliber found — keep the watch nearby and try again"
+                connectionPill.text = "NOT FOUND"
+                devices.text = "Tip: keep Bluetooth on and the watch within a few metres."
+            } else {
+                status.text = "Watch found — use its QR to connect"
+                connectionPill.text = "FOUND"
+            }
         }, 10000)
     }
 
@@ -81,7 +108,8 @@ class MainActivity : ComponentActivity() {
         overlay.visibility = View.VISIBLE
         closeScanner.visibility = View.VISIBLE
         findViewById<Button>(R.id.qrButton).visibility = View.GONE
-        status.text = "Scanning watch QR…"
+        scanButton.visibility = View.GONE
+        status.text = "Point the camera at the watch QR"
         val providerFuture = ProcessCameraProvider.getInstance(this)
         providerFuture.addListener({
             val provider = providerFuture.get()
@@ -108,22 +136,27 @@ class MainActivity : ComponentActivity() {
         overlay.visibility = View.GONE
         closeScanner.visibility = View.GONE
         findViewById<Button>(R.id.qrButton).visibility = View.VISIBLE
+        scanButton.visibility = View.VISIBLE
     }
 
     private fun onQr(value: String) {
         if (!scanningQr) return
         closeQrScanner()
         findViewById<TextView>(R.id.qrValue).apply {
-            text = "PAIRING QR: $value"
+            text = "PAIRING DATA  •  ${value.take(58)}${if (value.length > 58) "…" else ""}"
             visibility = View.VISIBLE
         }
-        status.text = "QR received — looking for the watch over Bluetooth…"
+        status.text = "QR received — connecting securely over Bluetooth…"
+        connectionPill.text = "CONNECTING"
         val mac = extractMac(value)
         if (mac != null) {
             runCatching { connectToDevice(BluetoothAdapter.getDefaultAdapter().getRemoteDevice(mac)) }
-                .onFailure { status.text = "QR read, but its device address could not be used: ${it.message}" }
+                .onFailure {
+                    status.text = "QR read, but the Bluetooth address could not be used"
+                    connectionPill.text = "ERROR"
+                }
         } else {
-            status.text = "QR read. No Bluetooth address was present; starting a short Caliber scan…"
+            status.text = "QR read — no Bluetooth address found; scanning instead…"
             startScan()
         }
     }
@@ -135,7 +168,13 @@ class MainActivity : ComponentActivity() {
 
     private fun connectToDevice(device: BluetoothDevice) {
         gatt?.close()
-        gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        writeChar = null
+        notifyChar = null
+        gatt = if (Build.VERSION.SDK_INT >= 26) {
+            device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        } else {
+            device.connectGatt(this, false, gattCallback)
+        }
         status.text = "Connecting to ${runCatching { device.name }.getOrNull() ?: "ColorFit Caliber"}…"
     }
 
@@ -143,27 +182,115 @@ class MainActivity : ComponentActivity() {
         override fun onConnectionStateChange(g: BluetoothGatt, statusCode: Int, newState: Int) {
             runOnUiThread {
                 if (newState == BluetoothGatt.STATE_CONNECTED) {
-                    status.text = "Connected — discovering watch services…"
+                    connectionPill.text = "CONNECTED"
+                    status.text = "Connected — preparing the watch link…"
                     g.discoverServices()
                 } else {
+                    connectionPill.text = "DISCONNECTED"
                     status.text = "Watch disconnected (status $statusCode)"
                 }
             }
         }
 
         override fun onServicesDiscovered(g: BluetoothGatt, statusCode: Int) {
+            if (statusCode != BluetoothGatt.GATT_SUCCESS) {
+                runOnUiThread {
+                    connectionPill.text = "ERROR"
+                    status.text = "Service discovery failed ($statusCode)"
+                }
+                return
+            }
+            val service = g.getService(SERVICE_UUID)
+            writeChar = service?.getCharacteristic(WRITE_UUID)
+            notifyChar = service?.getCharacteristic(NOTIFY_UUID)
             runOnUiThread {
-                if (statusCode != BluetoothGatt.GATT_SUCCESS) {
-                    status.text = "Connected, but service discovery failed ($statusCode)"
-                    return@runOnUiThread
+                devices.text = if (service == null) {
+                    "ColorFit service was not found. The connected device may not be a Caliber 2881."
+                } else {
+                    "ColorFit Caliber 2881\n${service.characteristics.size} BLE characteristics discovered"
                 }
-                val lines = g.services.flatMap { service ->
-                    listOf("SERVICE ${service.uuid}") + service.characteristics.map { c -> "  ${c.uuid}  [${c.properties.toString(16)}]" }
+            }
+            if (service == null || writeChar == null || notifyChar == null) {
+                runOnUiThread {
+                    connectionPill.text = "UNSUPPORTED"
+                    status.text = "Connected, but the expected Caliber protocol was not found"
                 }
-                devices.text = lines.joinToString("\n")
-                status.text = "Connected — GATT diagnostics ready"
+                return
+            }
+            enableNotifications(g)
+        }
+
+        override fun onDescriptorWrite(g: BluetoothGatt, descriptor: BluetoothGattDescriptor, statusCode: Int) {
+            if (descriptor.uuid == CCCD_UUID) {
+                runOnUiThread {
+                    if (statusCode == BluetoothGatt.GATT_SUCCESS) {
+                        connectionPill.text = "READY"
+                        status.text = "Connected — watch link ready"
+                        devices.text = "ColorFit Caliber 2881\nBLE protocol channel ready\n\n16186F01  •  notifications / ACK\n16186F02  •  command channel"
+                        sendProtocolPing()
+                    } else {
+                        connectionPill.text = "PARTIAL"
+                        status.text = "Connected, but notifications could not be enabled ($statusCode)"
+                    }
+                }
             }
         }
+
+        override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+            if (characteristic.uuid == NOTIFY_UUID) {
+                val hex = characteristic.value.joinToString(" ") { "%02X".format(it) }
+                runOnUiThread {
+                    status.text = "Watch responded — BLE link active"
+                    devices.append("\n\nRX  $hex")
+                }
+            }
+        }
+    }
+
+    private fun enableNotifications(g: BluetoothGatt) {
+        val characteristic = notifyChar ?: return
+        g.setCharacteristicNotification(characteristic, true)
+        val descriptor = characteristic.getDescriptor(CCCD_UUID)
+        if (descriptor == null) {
+            runOnUiThread {
+                connectionPill.text = "READY"
+                status.text = "Connected — notification channel ready"
+                sendProtocolPing()
+            }
+            return
+        }
+        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+        g.writeDescriptor(descriptor)
+    }
+
+    private fun sendProtocolPing() {
+        val characteristic = writeChar ?: return
+        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        characteristic.value = PING
+        gatt?.writeCharacteristic(characteristic)
+    }
+
+    private fun sendAck(data: ByteArray) {
+        val characteristic = notifyChar ?: return
+        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        characteristic.value = data
+        gatt?.writeCharacteristic(characteristic)
+    }
+
+    @Suppress("unused")
+    private fun sendFrame(packet: ByteArray) {
+        val characteristic = writeChar ?: return
+        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        characteristic.value = PING
+        gatt?.writeCharacteristic(characteristic)
+        window.decorView.postDelayed({
+            characteristic.value = packet
+            gatt?.writeCharacteristic(characteristic)
+            window.decorView.postDelayed({
+                sendAck(ACK_OK)
+                window.decorView.postDelayed({ sendAck(ACK_END) }, 30)
+            }, 80)
+        }, 150)
     }
 
     private val callback = object : ScanCallback() {
@@ -174,11 +301,14 @@ class MainActivity : ComponentActivity() {
                 seen[d.address] = d
                 devices.text = seen.values.joinToString("\n\n") { device ->
                     val n = runCatching { device.name }.getOrNull() ?: "Noise / Caliber"
-                    "⌚ $n\n${device.address}"
+                    "⌚  $n\n    ${device.address}"
                 }
             }
         }
-        override fun onScanFailed(errorCode: Int) { status.text = "BLE scan failed ($errorCode)" }
+        override fun onScanFailed(errorCode: Int) {
+            status.text = "BLE scan failed ($errorCode)"
+            connectionPill.text = "ERROR"
+        }
     }
 
     override fun onDestroy() {
