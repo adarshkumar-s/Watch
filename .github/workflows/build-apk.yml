@@ -19,20 +19,42 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Gradle output is scanned for compiler/test errors and re-emitted as workflow
+      # annotations so failures are visible without downloading raw logs.
       - name: Unit tests (QR parser, packet codec, correlation, state machine, log)
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest --stacktrace 2>&1 | tee /tmp/g-test.log
+          rc=${PIPESTATUS[0]}
+          if [ $rc -ne 0 ]; then
+            grep -E "^e: |error:|FAILED|Error:" /tmp/g-test.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            exit $rc
+          fi
 
-      - name: Android lint (report only, artifacts uploaded)
-        run: ./gradlew :app:lintDebug || true
+      - name: Android lint (report only)
+        run: |
+          set -o pipefail
+          ./gradlew :app:lintDebug 2>&1 | tee /tmp/g-lint.log || true
+          grep -E "Error: |Warning: " /tmp/g-lint.log | head -30 | while IFS= read -r l; do echo "::notice::$l"; done || true
 
       - name: Assemble diagnostic APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee /tmp/g-apk.log
+          rc=${PIPESTATUS[0]}
+          if [ $rc -ne 0 ]; then
+            grep -E "^e: |error:|FAILED|Error:" /tmp/g-apk.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            exit $rc
+          fi
+          ls -la app/build/outputs/apk/debug/
 
       - name: Upload OMNITRIX-debug.apk
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: OMNITRIX-debug-apk
           path: app/build/outputs/apk/debug/OMNITRIX-debug.apk
+          if-no-files-found: error
 
       - name: Upload lint + test reports
         uses: actions/upload-artifact@v4
@@ -42,3 +64,4 @@ jobs:
           path: |
             app/build/reports/
             app/build/test-results/testDebugUnitTest/
+          if-no-files-found: warn

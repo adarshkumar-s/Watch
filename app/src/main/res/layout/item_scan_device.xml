@@ -26,7 +26,6 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/rowConnect" style="@style/OmniButton.Primary"
         android:text="CONNECT" android:textSize="11sp"
-        android:insetTop="0dp" android:insetBottom="0dp"
         android:layout_marginStart="8dp"
         android:layout_width="92dp" android:layout_height="42dp" />
 </LinearLayout>
