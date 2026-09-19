@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal" android:background="#070A06" android:layout_width="match_parent" android:layout_height="match_parent">
+    <TextView android:text="OMNITRIX" android:textColor="#B8FF3D" android:textSize="34sp" android:textStyle="bold" android:layout_marginTop="30dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <TextView android:text="COLORFIT CALIBER 2881 • R204.5.8" android:textColor="#AAB3A3" android:textSize="12sp" android:layout_marginTop="6dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <Button android:id="@+id/scanButton" android:text="SCAN FOR CALIBER" android:layout_marginTop="34dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <TextView android:id="@+id/status" android:text="Ready to scan" android:textColor="#FFFFFF" android:textSize="16sp" android:gravity="center" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <TextView android:id="@+id/devices" android:textColor="#DCE5D8" android:textSize="15sp" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+</LinearLayout>
