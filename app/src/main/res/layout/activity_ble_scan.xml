@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/omni_bg"
+    android:paddingStart="18dp" android:paddingEnd="18dp" android:paddingTop="22dp" android:paddingBottom="14dp">
+
+    <TextView android:text="BLUETOOTH SCAN" android:textColor="@color/omni_green"
+        android:textSize="20sp" android:textStyle="bold" android:letterSpacing="0.08"
+        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+    <TextView android:id="@+id/scanStatus"
+        android:text="Ready. All nearby BLE devices are shown in diagnostic mode."
+        android:textColor="@color/omni_text" android:textSize="13sp"
+        android:lineSpacingExtra="2dp" android:layout_marginTop="8dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+    <!-- permission / BT-off gate -->
+    <LinearLayout android:id="@+id/scanPermissionBlock"
+        android:orientation="vertical" android:background="@color/omni_panel"
+        android:padding="14dp" android:visibility="gone" android:layout_marginTop="10dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+        <TextView android:id="@+id/scanPermissionHint"
+            android:textColor="@color/omni_amber" android:textSize="13sp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scanGrant" style="@style/OmniButton.Primary"
+            android:text="GRANT PERMISSIONS" android:layout_marginTop="10dp"
+            android:layout_width="match_parent" android:layout_height="46dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scanEnableBt" style="@style/OmniButton.Primary"
+            android:text="ENABLE BLUETOOTH" android:layout_marginTop="8dp"
+            android:layout_width="match_parent" android:layout_height="46dp" />
+    </LinearLayout>
+
+    <LinearLayout android:orientation="horizontal" android:layout_marginTop="12dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scanToggle" style="@style/OmniButton.Primary"
+            android:text="SCAN"
+            android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scanClear" style="@style/OmniButton.Secondary"
+            android:text="CLEAR" android:layout_marginStart="8dp"
+            android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scanBack" style="@style/OmniButton.Secondary"
+            android:text="BACK" android:layout_marginStart="8dp"
+            android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" />
+    </LinearLayout>
+
+    <TextView style="@style/OmniSectionLabel" android:text="NEARBY DEVICES"
+        android:layout_marginTop="14dp"
+        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/scanList"
+        android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:layout_marginTop="6dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/scanDemo" style="@style/OmniButton.Ghost"
+        android:text="＋ Load SIMULATED Caliber (no hardware needed)"
+        android:textSize="12sp"
+        android:layout_width="match_parent" android:layout_height="44dp" />
+</LinearLayout>

@@ -1,16 +1,40 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
+    <!-- Android <= 11 (API <= 30): legacy Bluetooth + location needed for scan results -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
+
+    <!-- Android 12+ (API 31+) -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <uses-permission android:name="android.permission.CAMERA" />
-    <application android:theme="@style/Theme.Omnitrix" android:label="OMNITRIX" android:allowBackup="false" android:supportsRtl="true">
+
+    <application
+        android:name=".App"
+        android:theme="@style/Theme.Omnitrix"
+        android:label="OMNITRIX"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="false"
+        android:supportsRtl="true">
+
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".ui.QrScannerActivity" android:exported="false" />
+        <activity android:name=".ui.BleScanActivity" android:exported="false" />
+        <activity android:name=".ui.GattExplorerActivity" android:exported="false" />
+        <activity android:name=".ui.DiagnosticsActivity" android:exported="false" />
+        <activity android:name=".ui.CompareActivity" android:exported="false" />
     </application>
 </manifest>

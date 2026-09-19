@@ -4,5 +4,32 @@
         <item name="android:colorAccent">#B8FF3D</item>
         <item name="android:navigationBarColor">#070A06</item>
         <item name="android:statusBarColor">#070A06</item>
+        <item name="android:windowBackground">@color/omni_bg</item>
+    </style>
+
+    <style name="OmniSectionLabel">
+        <item name="android:textColor">@color/omni_text_muted</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.12</item>
+    </style>
+
+    <style name="OmniButton.Primary" parent="Widget.Material3.Button">
+        <item name="android:backgroundTint">@color/omni_green</item>
+        <item name="android:textColor">#0A0D09</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="OmniButton.Secondary" parent="Widget.Material3.Button">
+        <item name="android:backgroundTint">#1A201B</item>
+        <item name="android:textColor">#DDE7DD</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="OmniButton.Ghost" parent="Widget.Material3.Button">
+        <item name="android:backgroundTint">@color/omni_panel_2</item>
+        <item name="android:textColor">@color/omni_green</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 </resources>

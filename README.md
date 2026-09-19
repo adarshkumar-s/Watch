@@ -1,23 +1,56 @@
 # OMNITRIX — Noise ColorFit Caliber 2881
 
-A community Android companion app for the **Noise ColorFit Caliber (device 2881, firmware R204.5.8)**.
+A community Android **diagnostic** companion app for the **Noise ColorFit Caliber
+(device 2881, firmware R204.5.8)**.
 
-> This project is experimental. It does not use Noise's private keys or proprietary source code. The BLE protocol will be discovered and implemented only for interoperability with the user's own watch.
+> ⚠ The BLE protocol of this watch is **not publicly documented**. This app is
+> deliberately **read/discovery-only**: it never sends guessed packets, opcodes,
+> session-init frames or ACKs to the watch. See `docs/PROTOCOL_AUDIT.md` and
+> `docs/PROTOCOL_RESEARCH.md` for exactly what is CONFIRMED / LIKELY / UNKNOWN.
 
-## Goals
+## Milestone 1 — safe diagnostics (current)
 
-- BLE device discovery and connection
-- GATT service/characteristic diagnostics
-- Device/battery information where exposed by the watch
-- Notifications and call-related features where supported
-- Find-watch/vibration features where supported
-- Activity/health data where exposed
-- Omnitrix-inspired dashboard and controls
+- **SCAN WATCH QR** — captures the QR shown by the watch, shows the *complete raw payload*,
+  classifies its format (URL / JSON / MAC / UUID / hex / base64 / JWT…), COPY / SAVE / EXPORT.
+  Nothing in the payload is ever auto-executed.
+- **SCAN BLUETOOTH** — lists *all* nearby BLE devices (not just "Caliber"), with RSSI, name,
+  address, advertisement data; handles Android 12+ and ≤11 permissions, Bluetooth-off,
+  timeouts and duplicates.
+- **CONNECTED WATCH** — GATT explorer: services, characteristics, properties, descriptors,
+  user-initiated READs and optional NOTIFY subscriptions (CCCD only). **No characteristic
+  writes exist in diagnostic mode.**
+- **DIAGNOSTICS** — timestamped, direction-tagged log (PHONE → WATCH / WATCH → PHONE),
+  COPY / EXPORT / CLEAR, plus the **QR ↔ BLE correlation** screen that computes from observed
+  data whether the QR is part of the BLE pairing process.
+- **omnitrix-diagnostic.txt** export (explicit user Share action only; nothing is uploaded).
 
-## Development
+## Architecture
 
-The first milestone is a diagnostic Android app that can scan for and connect to the Caliber, enumerate GATT services, and safely inspect characteristics. No firmware flashing or firmware updates are performed.
+```
+app/src/main/java/com/adarshkumar/omnitrix/
+├── ble/        BleScanner, BleConnection, GattExplorer, GattModel, BlePermissions, DeviceRegistry
+├── devices/    DeviceDriver, NoiseColorFitCaliber2881Driver, FakeCaliberDevice
+├── protocol/   ProtocolFrame, PacketEncoder/Decoder (hypothesis, never transmitted),
+│               ConnectionStateMachine, ProtocolLogger(direction), HexCodec, EvidenceLevel
+├── pairing/    QrPayload, QrParser, QrStore, PairingManager, QrCameraAnalyzer
+├── analysis/   QrBleCorrelation
+├── diag/       DiagnosticLog, DiagnosticExporter
+└── ui/         MainActivity(dashboard), QrScannerActivity, BleScanActivity,
+                GattExplorerActivity, DiagnosticsActivity, CompareActivity, WatchLink
+```
 
-## APK
+New ColorFit models are added as new drivers under `devices/` without touching BLE or UI code.
 
-APK releases will be published in GitHub Releases once a build is ready for testing.
+## Verification
+
+- Unit tests: QR parser (incl. malformed payloads), packet codec (incl. malformed frames),
+  hex codec, connection state machine, QR↔BLE correlation, diagnostic log, driver policy
+  (every capability must report "Not yet supported on this firmware").
+- GitHub Actions runs tests + lint + `assembleDebug` and publishes **`OMNITRIX-debug.apk`**
+  as a build artifact. Releases will be published once the diagnostic milestone proves stable.
+
+## Safety rules implemented
+
+No firmware flashing/updating, no unknown persistent writes, no unknown opcodes, no scan
+spam, no brute-force pairing, no auth bypass. Every feature gated behind CONFIRMED protocol
+facts shows *"Not yet supported on this firmware."* — never a fake success.

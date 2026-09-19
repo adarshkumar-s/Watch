@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content">
+
+    <!-- service header row -->
+    <LinearLayout android:id="@+id/svcBlock"
+        android:orientation="vertical"
+        android:background="@color/omni_panel_2" android:padding="10dp"
+        android:layout_marginTop="8dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+        <TextView android:id="@+id/svcUuid" android:textColor="@color/omni_green"
+            android:textSize="12sp" android:textStyle="bold" android:typeface="monospace"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/svcLabel" android:textColor="@color/omni_text_dim"
+            android:textSize="11sp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- characteristic row -->
+    <LinearLayout android:id="@+id/charBlock"
+        android:orientation="vertical"
+        android:background="@color/omni_panel" android:padding="10dp"
+        android:layout_marginTop="4dp" android:layout_marginStart="14dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+        <TextView android:id="@+id/charUuid" android:textColor="@color/omni_text"
+            android:textSize="12sp" android:typeface="monospace"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/charLabel" android:textColor="@color/omni_text_dim"
+            android:textSize="11sp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/charProps" android:textColor="@color/omni_cyan"
+            android:textSize="10sp" android:textStyle="bold" android:layout_marginTop="3dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/charValue" android:textColor="@color/omni_green"
+            android:textSize="11sp" android:typeface="monospace" android:layout_marginTop="4dp"
+            android:visibility="gone"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/charWriteNote" android:textColor="@color/omni_amber"
+            android:textSize="10sp" android:layout_marginTop="4dp" android:visibility="gone"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <LinearLayout android:orientation="horizontal" android:layout_marginTop="8dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/charRead" style="@style/OmniButton.Ghost"
+                android:text="READ" android:textSize="11sp"
+                android:insetTop="0dp" android:insetBottom="0dp"
+                android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/charNotify" style="@style/OmniButton.Ghost"
+                android:text="NOTIFY ON" android:textSize="11sp"
+                android:insetTop="0dp" android:insetBottom="0dp"
+                android:layout_marginStart="8dp"
+                android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

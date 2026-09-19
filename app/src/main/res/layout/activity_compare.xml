@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/omni_bg">
+    <LinearLayout android:orientation="vertical"
+        android:paddingStart="18dp" android:paddingEnd="18dp" android:paddingTop="22dp" android:paddingBottom="14dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+
+        <TextView android:text="QR ↔ BLE CORRELATION" android:textColor="@color/omni_green"
+            android:textSize="18sp" android:textStyle="bold" android:letterSpacing="0.08"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        <TextView android:text="Is the QR part of the pairing protocol? Findings below are computed only from observed data."
+            android:textColor="@color/omni_text_dim" android:textSize="12sp" android:layout_marginTop="4dp" android:lineSpacingExtra="2dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView style="@style/OmniSectionLabel" android:text="QR DATA"
+            android:layout_marginTop="16dp"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/cmpQr"
+            android:textIsSelectable="true"
+            android:textColor="@color/omni_text" android:textSize="12sp" android:typeface="monospace"
+            android:background="@color/omni_panel" android:padding="12dp" android:layout_marginTop="6dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView style="@style/OmniSectionLabel" android:text="BLE ADVERTISEMENT"
+            android:layout_marginTop="14dp"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/cmpAdv"
+            android:textIsSelectable="true"
+            android:textColor="@color/omni_text" android:textSize="12sp" android:typeface="monospace"
+            android:background="@color/omni_panel" android:padding="12dp" android:layout_marginTop="6dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView style="@style/OmniSectionLabel" android:text="DEVICE INFORMATION"
+            android:layout_marginTop="14dp"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/cmpDevice"
+            android:textIsSelectable="true"
+            android:textColor="@color/omni_text" android:textSize="12sp" android:typeface="monospace"
+            android:background="@color/omni_panel" android:padding="12dp" android:layout_marginTop="6dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView style="@style/OmniSectionLabel" android:text="FINDINGS"
+            android:layout_marginTop="14dp"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/cmpFindings"
+            android:textColor="@color/omni_green" android:textSize="13sp"
+            android:background="@color/omni_panel_2" android:padding="12dp" android:layout_marginTop="6dp"
+            android:lineSpacingExtra="3dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cmpBack" style="@style/OmniButton.Secondary"
+            android:text="BACK"
+            android:layout_marginTop="14dp"
+            android:layout_width="match_parent" android:layout_height="46dp" />
+    </LinearLayout>
+</ScrollView>
