@@ -83,31 +83,58 @@ jobs:
             app/build/test-results/testDebugUnitTest/
           if-no-files-found: warn
 
-      - name: Build report + gate
+      - name: Test counts from junit XML
+        if: always()
+        run: |
+          t=0; f=0
+          if ls app/build/test-results/testDebugUnitTest/*.xml >/dev/null 2>&1; then
+            for x in app/build/test-results/testDebugUnitTest/*.xml; do
+              L=$(head -3 "$x" | grep '<testsuite' | head -1)
+              n=$(echo "$L" | sed -n 's/.*tests="\([0-9]*\)".*/\1/p')
+              fl=$(echo "$L" | sed -n 's/.*failures="\([0-9]*\)".*/\1/p')
+              er=$(echo "$L" | sed -n 's/.*errors="\([0-9]*\)".*/\1/p')
+              t=$((t + ${n:-0})); f=$((f + ${fl:-0} + ${er:-0}))
+            done
+          fi
+          echo "- junit XML summary: **$t tests run, $f failures/errors**" > /tmp/junit-summary.md
+
+      - name: Build report and commit comment
         if: always()
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          set +e  # nothing in this reporting step may abort before the comment is posted
-          APK_FOUND=$(ls app/build/outputs/apk/debug/OMNITRIX-debug.apk 2>/dev/null && echo yes || echo NO)
+          set +e
+          APK_FOUND="NO"
+          if [ -f app/build/outputs/apk/debug/OMNITRIX-debug.apk ]; then
+            APK_FOUND="yes ($(du -h app/build/outputs/apk/debug/OMNITRIX-debug.apk | cut -f1))"
+          fi
           {
-            echo "**OMNITRIX build report** ($(git rev-parse --short HEAD))"
-            echo
+            echo "**OMNITRIX build report** (${{ github.sha }})"
+            echo ""
             echo "- unit tests rc: $(cat /tmp/rc/test 2>/dev/null || echo '?')"
             echo "- lint rc: $(cat /tmp/rc/lint 2>/dev/null || echo '?')"
             echo "- assembleDebug rc: $(cat /tmp/rc/apk 2>/dev/null || echo '?')"
             echo "- OMNITRIX-debug.apk present: $APK_FOUND"
             echo '- test summary:'; echo '```';
             grep -hE "tests? (completed|failed)" /tmp/g-test.log 2>/dev/null | tail -3 || true; echo '```'
+            cat /tmp/junit-summary.md 2>/dev/null || true
             echo '- build outputs:'; echo '```'; find app/build/outputs -type f 2>/dev/null; echo '```'
+            echo '**failed tests**'; echo '```'; grep -hE " > .* FAILED" /tmp/g-test.log 2>/dev/null | sort -u | head -30; echo '```'
             if [ "$(cat /tmp/rc/test 2>/dev/null)" != "0" ]; then
-              # Truthful counts straight from junit XML (works even when the console
-            # output disappears behind the Gradle build cache)
-            if ls app/build/test-results/testDebugUnitTest/*.xml >/dev/null 2>&1; then
-              python3 - <<'PYEOF' || true
-import glob, xml.etree.ElementTree as ET
-t=f=0
-for x in glob.glob('app/build/test-results/testDebugUnitTest/*.xml'):
+              echo '**test log tail**'; echo '```'; tail -n 90 /tmp/g-test.log; echo '```'
+            fi
+            if [ "$(cat /tmp/rc/apk 2>/dev/null)" != "0" ]; then
+              echo '**assemble log tail**'; echo '```'; tail -n 90 /tmp/g-apk.log; echo '```'
+            fi
+            if [ "$(cat /tmp/rc/lint 2>/dev/null)" != "0" ]; then
+              echo '**lint log tail**'; echo '```'; tail -n 40 /tmp/g-lint.log; echo '```'
+            fi
+            echo '**assemble step diagnostics**'; echo '```'; cat /tmp/apk-step-diag.txt 2>/dev/null; echo '```'
+          } > /tmp/report.md 2>/dev/null || true
+          gh api repos/${{ github.repository }}/commits/${{ github.sha }}/comments \
+            -F body=@/tmp/report.md || true
+          test "$(cat /tmp/rc/test 2>/dev/null)" = "0" -a "$(cat /tmp/rc/apk 2>/dev/null)" = "0"
     r=ET.parse(x).getroot()
     t+=int(r.get('tests',0)); f+=int(r.get('failures',0))+int(r.get('errors',0))
 print('')
