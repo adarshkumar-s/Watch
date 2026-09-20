@@ -45,6 +45,23 @@ remaining audit gaps and labels all legacy material UNVERIFIED instead of deleti
    a machine build report posted as a commit comment.
 12. **Completion criteria** — see checklist below.
 
+## CI-truthfulness incident (important caveat)
+
+During the rev-2 audit we discovered the workflow's `cmd | tee file || rc=$?` pattern
+recorded `rc=0` for failing Gradle builds (pipefail not enforced on runner shells).
+All "green" results before commit **ae5d867** are therefore unverified. `set -o pipefail`
+now runs inside every Gradle step, the gate fails hard on any non-zero rc, and the
+build report includes failing-task/-test names. A chain of real bugs exposed by the
+fix was addressed in commits d63a90b..ae5d867:
+
+1. `Unresolved reference: outputFileName` broke ALL Gradle invocations (APK rename).
+2. `GattModel.render()` invalid string-nesting (escaped quotes).
+3. `Boolean!` platform-type misuse around `writeDescriptor` (return type changed
+   across API levels — callback is authoritative now).
+4. Lenient `HexCodec.parse` accepted garbage; now strict.
+5. Two hand-encoded AD fixtures had a wrong length byte.
+6. Manufacturer payload text wasn't rendered ("moyoung-v2" expectation).
+
 ## Completion criteria checklist
 
 - ✓ APK builds — CI assembleDebug (green run verified at ae2de56; this rev re-verified below)
