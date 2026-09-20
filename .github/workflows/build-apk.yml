@@ -101,18 +101,19 @@ jobs:
             grep -hE "tests? (completed|failed)" /tmp/g-test.log 2>/dev/null | tail -3 || true; echo '```'
             echo '- build outputs:'; echo '```'; find app/build/outputs -type f 2>/dev/null; echo '```'
             if [ "$(cat /tmp/rc/test 2>/dev/null)" != "0" ]; then
-              echo '**failed tests**'; echo '```'; grep -hE " > .* FAILED" /tmp/g-test.log | sort -u | head -30
-              grep -h "testcase" -r app/build/test-results/ 2>/dev/null | grep -B0 "" >/dev/null || true
-              echo '```'
-              # Truthful counts from junit XML regardless of console caching
-              if ls app/build/test-results/testDebugUnitTest/*.xml >/dev/null 2>&1; then
-                T=0; F=0
-                for x in app/build/test-results/testDebugUnitTest/*.xml; do
-                  t=$(grep -o 'tests="[0-9]*"' "$x" | head -1 | grep -o '[0-9]*'); f=$(grep -o 'failures="[0-9]*"' "$x" | head -1 | grep -o '[0-9]*'); e=$(grep -o 'errors="[0-9]*"' "$x" | head -1 | grep -o '[0-9]*')
-                  T=$((T+${t:-0})); F=$((F+${f:-0}+${e:-0}))
-                done
-                echo "- junit XML summary: **$T tests run, $F failures/errors**"
-              fi
+              # Truthful counts straight from junit XML (works even when the console
+            # output disappears behind the Gradle build cache)
+            if ls app/build/test-results/testDebugUnitTest/*.xml >/dev/null 2>&1; then
+              python3 - <<'PYEOF' || true
+import glob, xml.etree.ElementTree as ET
+t=f=0
+for x in glob.glob('app/build/test-results/testDebugUnitTest/*.xml'):
+    r=ET.parse(x).getroot()
+    t+=int(r.get('tests',0)); f+=int(r.get('failures',0))+int(r.get('errors',0))
+print('')
+print(f'- junit XML summary: **{t} tests run, {f} failures/errors**')
+PYEOF
+            fi
               echo '**test log tail**'; echo '```'; tail -n 90 /tmp/g-test.log; echo '```'
             fi
             if [ "$(cat /tmp/rc/apk 2>/dev/null)" != "0" ]; then
