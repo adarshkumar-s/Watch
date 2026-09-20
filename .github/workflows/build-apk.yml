@@ -101,6 +101,7 @@ jobs:
             grep -hE "tests? (completed|failed)" /tmp/g-test.log 2>/dev/null | tail -3 || true; echo '```'
             echo '- build outputs:'; echo '```'; find app/build/outputs -type f 2>/dev/null; echo '```'
             if [ "$(cat /tmp/rc/test 2>/dev/null)" != "0" ]; then
+              echo '**failed tests**'; echo '```'; grep -hE " > .* FAILED" /tmp/g-test.log | sort -u | head -30; echo '```'
               echo '**test log tail**'; echo '```'; tail -n 90 /tmp/g-test.log; echo '```'
             fi
             if [ "$(cat /tmp/rc/apk 2>/dev/null)" != "0" ]; then
