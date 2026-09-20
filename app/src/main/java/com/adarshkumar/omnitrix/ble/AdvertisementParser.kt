@@ -86,7 +86,13 @@ object AdvertisementParser {
                     if (f.data.size >= 2) {
                         val company = (f.data[1].toInt() and 0xFF shl 8) or
                             (f.data[0].toInt() and 0xFF)
-                        " company=0x%04X data=%s".format(company, hex(f.data.copyOfRange(2, f.data.size)))
+                        val payload = f.data.copyOfRange(2, f.data.size)
+                        // Some vendors embed plain text here — show it next to the hex.
+                        val printable =
+                            if (payload.isNotEmpty() && payload.all { (it.toInt() and 0xFF) in 32..126 })
+                                " \"${String(payload, Charsets.UTF_8)}\""
+                            else ""
+                        " company=0x%04X data=%s%s".format(company, hex(payload), printable)
                     } else " data=${hex(f.data)}"
                 }
                 AD_TX_POWER -> if (f.data.isNotEmpty()) " ${f.data[0]} dBm" else ""
