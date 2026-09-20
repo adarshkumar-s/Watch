@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -57,7 +58,16 @@ class QrScannerActivity : ComponentActivity() {
         rawValue = findViewById(R.id.qrRawValue)
         formatsView = findViewById(R.id.qrFormats)
         candidatesView = findViewById(R.id.qrCandidates)
-        connectButton = findViewById(R.id.qrConnect)
+
+        // The Arena layout intentionally predates the connect action. Create it here so the
+        // connection handoff can be added without replacing the established diagnostic UI.
+        connectButton = MaterialButton(this).apply {
+            text = "CONNECT TO WATCH"
+            setOnClickListener { connectToScannedWatch() }
+            visibility = View.GONE
+        }
+        val resultContent = (resultPanel as android.widget.ScrollView).getChildAt(0) as LinearLayout
+        resultContent.addView(connectButton, 3)
 
         findViewById<MaterialButton>(R.id.qrClose).setOnClickListener { finish() }
         findViewById<MaterialButton>(R.id.qrGrantCamera).setOnClickListener {
@@ -75,10 +85,10 @@ class QrScannerActivity : ComponentActivity() {
         findViewById<MaterialButton>(R.id.qrRescan).setOnClickListener {
             resultPanel.visibility = View.GONE
             hint.visibility = View.VISIBLE
+            connectButton.visibility = View.GONE
             analyzer.reset()
             analyzer.enabled = true
         }
-        connectButton.setOnClickListener { connectToScannedWatch() }
 
         handleCameraPermission()
     }
@@ -142,7 +152,7 @@ class QrScannerActivity : ComponentActivity() {
 
         val mac = parsed.macCandidates.firstOrNull()?.uppercase(Locale.US)
         connectButton.visibility = if (mac != null && isValidMac(mac)) View.VISIBLE else View.GONE
-        connectButton.text = if (mac != null) "CONNECT TO WATCH  •  $mac" else "CONNECT TO WATCH"
+        if (mac != null) connectButton.text = "CONNECT TO WATCH  •  $mac"
 
         hint.visibility = View.GONE
         resultPanel.visibility = View.VISIBLE
@@ -158,7 +168,6 @@ class QrScannerActivity : ComponentActivity() {
             BlePermissions.request(this)
             return
         }
-        // Explicit user action: hand the QR-derived MAC to the existing real GATT explorer.
         startActivity(Intent(this, GattExplorerActivity::class.java).putExtra(GattExplorerActivity.EXTRA_ADDRESS, mac))
     }
 
