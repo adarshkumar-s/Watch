@@ -8,9 +8,9 @@ import java.util.regex.Pattern
  *
  * Detection is descriptive ("looks like a MAC", "looks like JSON") and every extracted
  * candidate is surfaced to the user verbatim. Malformed input never crashes the scanner —
- * worst case it is classified as PLAIN_TEXT.
+ * worst case it is classified as TEXT or UNKNOWN.
  */
-object QrParser {
+object QrPayloadParser {
 
     private val MAC_COLON: Pattern = Pattern.compile("(?i)([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}")
     private val UUID_RE: Pattern = Pattern.compile(
@@ -85,7 +85,12 @@ object QrParser {
         if (HexCodec.looksLikeHex(value)) formats += QrPayload.Format.HEX
         if (looksLikeBase64(value)) formats += QrPayload.Format.BASE64
 
-        if (formats.isEmpty()) formats += QrPayload.Format.PLAIN_TEXT
+        if (formats.isEmpty()) {
+            // Binary/control-heavy payloads are UNKNOWN rather than TEXT.
+            val printable = value.count { it.code in 32..126 || it in " \t\n\r" }
+            formats += if (printable >= value.length * 9 / 10)
+                QrPayload.Format.TEXT else QrPayload.Format.UNKNOWN
+        }
 
         return QrPayload(
             raw = value,

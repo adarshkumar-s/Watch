@@ -8,7 +8,10 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Handler
 import android.os.HandlerThread
-import com.adarshkumar.omnitrix.diag.DiagnosticLog
+import com.adarshkumar.omnitrix.diagnostics.DiagnosticLog
+import com.adarshkumar.omnitrix.diagnostics.LogEvent
+import com.adarshkumar.omnitrix.pairing.PairingManager
+import com.adarshkumar.omnitrix.pairing.PairingStateMachine
 import com.adarshkumar.omnitrix.protocol.HexCodec.toHex
 import java.util.Locale
 
@@ -46,16 +49,17 @@ class BleScanner(private val context: Context) {
         if (scanning) return true
         if (!BlePermissions.hasScanPermission(context)) {
             listener?.onScanError("BLE scan permission missing")
-            DiagnosticLog.info("BLE", "scan refused: permission missing")
+            DiagnosticLog.info(LogEvent.ERROR, "scan refused: permission missing")
             return false
         }
         val adapter = BlePermissions.adapter(context)
         if (adapter == null || !adapter.isEnabled) {
             listener?.onScanError("Bluetooth is off")
-            DiagnosticLog.info("BLE", "scan refused: Bluetooth disabled")
+            DiagnosticLog.info(LogEvent.ERROR, "scan refused: Bluetooth disabled")
             return false
         }
         val scanner = leScanner() ?: run {
+            DiagnosticLog.info(LogEvent.ERROR, "BLE scanner unavailable")
             listener?.onScanError("BLE scanner unavailable")
             return false
         }
@@ -67,12 +71,12 @@ class BleScanner(private val context: Context) {
             scanning = true
             handler.removeCallbacks(timeoutRunnable)
             handler.postDelayed(timeoutRunnable, timeoutMillis)
-            DiagnosticLog.info("BLE", "BLE scan started (timeout ${timeoutMillis / 1000}s, no name filter)")
+            DiagnosticLog.info(LogEvent.SCAN_STARTED, "BLE scan started (timeout ${timeoutMillis / 1000}s, no name filter)")
             listener?.onScanStateChanged(true)
             true
         } catch (se: SecurityException) {
             listener?.onScanError("BLE scan permission revoked")
-            DiagnosticLog.info("BLE", "startScan SecurityException: ${se.message}")
+            DiagnosticLog.info(LogEvent.ERROR, "startScan SecurityException: ${se.message}")
             false
         }
     }
@@ -85,9 +89,9 @@ class BleScanner(private val context: Context) {
         try {
             leScanner()?.stopScan(callback)
         } catch (se: SecurityException) {
-            DiagnosticLog.info("BLE", "stopScan SecurityException: ${se.message}")
+            DiagnosticLog.info(LogEvent.ERROR, "stopScan SecurityException: ${se.message}")
         }
-        DiagnosticLog.info("BLE", if (dueToTimeout) "BLE scan finished (timeout)" else "BLE scan stopped")
+        DiagnosticLog.info(LogEvent.SCAN_STOPPED, if (dueToTimeout) "BLE scan finished (timeout)" else "BLE scan stopped")
         listener?.onScanStateChanged(false)
     }
 
@@ -98,15 +102,23 @@ class BleScanner(private val context: Context) {
 
     private val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val device = toModel(result) ?: return
-            DeviceRegistry.upsert(device)
-            listener?.onDevicesChanged(DeviceRegistry.all())
+            handleResult(result)
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>) {
-            for (r in results) {
-                val d = toModel(r) ?: continue
-                DeviceRegistry.upsert(d)
+            for (r in results) handleResult(r)
+        }
+
+        private fun handleResult(result: ScanResult) {
+            val device = toModel(result) ?: return
+            val isNew = DeviceRegistry.get(device.address) == null
+            DeviceRegistry.upsert(device)
+            if (isNew) {
+                DiagnosticLog.info(
+                    LogEvent.DEVICE_FOUND,
+                    "DEVICE_FOUND ${device.address} name=${device.name ?: "—"} rssi=${device.rssi} dBm"
+                )
+                PairingManager.emit(PairingStateMachine.Event.DEVICE_FOUND)
             }
             listener?.onDevicesChanged(DeviceRegistry.all())
         }
@@ -119,7 +131,7 @@ class BleScanner(private val context: Context) {
                 SCAN_FAILED_FEATURE_UNSUPPORTED -> "LE scanning unsupported"
                 else -> "code $errorCode"
             }
-            DiagnosticLog.info("BLE", "BLE scan failed: $msg")
+            DiagnosticLog.info(LogEvent.ERROR, "BLE scan failed: $msg")
             listener?.onScanError("BLE scan failed: $msg")
         }
     }
@@ -149,6 +161,7 @@ class BleScanner(private val context: Context) {
             manufacturerDataHex = mfr,
             serviceUuids = record?.serviceUuids?.map { it.toString() } ?: emptyList(),
             serviceDataHex = serviceData,
+            rawAdvHex = record?.bytes?.toHex(""),
             lastSeenMillis = System.currentTimeMillis(),
             connectable = result.isConnectable,
         )

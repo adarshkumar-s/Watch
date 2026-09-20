@@ -20,7 +20,7 @@ import com.adarshkumar.omnitrix.ble.GattServiceModel
 import com.adarshkumar.omnitrix.ble.GattSnapshot
 import com.adarshkumar.omnitrix.devices.FakeCaliberDevice
 import com.adarshkumar.omnitrix.devices.NoiseColorFitCaliber2881Driver
-import com.adarshkumar.omnitrix.diag.DiagnosticLog
+import com.adarshkumar.omnitrix.diagnostics.DiagnosticLog
 import com.adarshkumar.omnitrix.protocol.ConnectionState
 import com.adarshkumar.omnitrix.protocol.HexCodec.toHex
 import com.google.android.material.button.MaterialButton
@@ -314,7 +314,11 @@ class GattTreeAdapter(
                 h.charBlock.visibility = View.GONE
                 h.svcUuid.text = "SERVICE  ${row.model.uuid}"
                 val label = GattExplorer.standardServiceName(row.model.uuid)
-                h.svcLabel.text = label ?: "vendor-specific / unidentified"
+                val legacy = GattExplorer.legacyLabel(row.model.uuid)
+                h.svcLabel.text = buildString {
+                    append(label ?: "vendor-specific / unidentified")
+                    legacy?.let { append("\n").append("⚠ ").append(it) }
+                }
                 h.serviceBlock.setOnClickListener { onRowInfo(row.model.uuid) }
             }
             is RowData.Characteristic -> {
@@ -322,8 +326,14 @@ class GattTreeAdapter(
                 h.charBlock.visibility = View.VISIBLE
                 val c = row.model
                 h.charUuid.text = c.uuid
-                h.charLabel.text =
-                    GattExplorer.standardCharacteristicName(c.uuid) ?: "unidentified characteristic"
+                val legacyLabel = GattExplorer.legacyLabel(c.uuid)
+                h.charLabel.text = buildString {
+                    append(
+                        GattExplorer.standardCharacteristicName(c.uuid)
+                            ?: "unidentified characteristic"
+                    )
+                    legacyLabel?.let { append("\n").append("⚠ ").append(it) }
+                }
                 h.charProps.text = c.properties.joinToString("  ")
 
                 val v = values[c.uuid.lowercase()] ?: (c.lastReadHex to c.lastReadText)

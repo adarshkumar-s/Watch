@@ -1,11 +1,15 @@
-package com.adarshkumar.omnitrix.diag
+package com.adarshkumar.omnitrix.diagnostics
 
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.adarshkumar.omnitrix.App
+import com.adarshkumar.omnitrix.ble.AdvertisementParser
 import com.adarshkumar.omnitrix.ble.DeviceRegistry
+import com.adarshkumar.omnitrix.pairing.PairingManager
 import com.adarshkumar.omnitrix.pairing.QrStore
+import com.adarshkumar.omnitrix.protocol.HexCodec
+import com.adarshkumar.omnitrix.protocol.UnverifiedLegacyCatalog
 
 /**
  * Builds `omnitrix-diagnostic.txt` — a complete local diagnostic snapshot.
@@ -23,6 +27,7 @@ object DiagnosticExporter {
         sb.appendLine("Android: API ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})")
         sb.appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
         sb.appendLine("Exported: ${java.util.Date()}")
+        sb.appendLine("Pairing state: ${PairingManager.state}")
         sb.appendLine()
 
         sb.appendLine("WATCH")
@@ -52,18 +57,42 @@ object DiagnosticExporter {
         val devices = DeviceRegistry.all()
         if (devices.isEmpty()) sb.appendLine("(no scan results this session)")
         for (d in devices) {
-            sb.appendLine("${d.address}  rssi=${d.rssi}  name=${d.name ?: "—"}  connectable=${d.connectable}")
+            sb.appendLine("${d.address}  rssi=${d.rssi}  name=${d.name ?: "—"}  connectable=${d.connectable}  txPower=${d.txPower ?: "—"}")
             d.serviceUuids.forEach { sb.appendLine("  adv service: $it") }
             d.manufacturerDataHex.forEach { (k, v) ->
                 sb.appendLine("  mfr[0x${k.toString(16).padStart(4, '0')}]: $v")
             }
             d.serviceDataHex.forEach { (k, v) -> sb.appendLine("  svcData[$k]: $v") }
+            d.rawAdvHex?.let { raw ->
+                sb.appendLine("  raw advertisement bytes: $raw")
+                HexCodec.parse(raw)?.let { parsed ->
+                    AdvertisementParser.render(parsed).lines()
+                        .forEach { line -> sb.appendLine("    $line") }
+                }
+            }
         }
         sb.appendLine()
 
         sb.appendLine("GATT DATABASE (read/discovery mode — no commands sent)")
         sb.appendLine("------------------------------------------------------")
         sb.appendLine(snap?.render() ?: "(not connected / not discovered)")
+        sb.appendLine()
+
+        sb.appendLine("LEGACY ASSUMPTIONS (UNVERIFIED — from the pre-audit code, never sent)")
+        sb.appendLine("----------------------------------------------------------------------")
+        for (lu in UnverifiedLegacyCatalog.uuidAssumptions) {
+            val present = snap?.let {
+                it.findService(lu.uuid) != null || it.characteristic(lu.uuid) != null
+            }
+            sb.appendLine(
+                "  ${lu.uuid} (${lu.role}): " +
+                    (present?.let { if (it) "PRESENT in discovered GATT" else "ABSENT — app uses discovered services" }
+                        ?: "no GATT snapshot yet")
+            )
+        }
+        UnverifiedLegacyCatalog.packetAssumptions.forEach {
+            sb.appendLine("  ${it.name} [${it.bytesHex}] — ${it.note}")
+        }
         sb.appendLine()
 
         sb.appendLine("CONNECTION / PROTOCOL LOG")

@@ -1,59 +1,66 @@
-# OMNITRIX — Protocol Research Notes (Phase 9)
+# OMNITRIX — Protocol Research Register (Noise ColorFit Caliber 2881 / R204.5.8)
 
-Publicly available research relevant to the Noise ColorFit Caliber. Every statement carries an
-evidence level, and **nothing here is treated as proof for device 2881 / firmware R204.5.8** until
-captured from the actual watch by the diagnostic app.
+Every protocol statement in the project carries exactly one evidence level:
 
-Evidence levels used across the app: `CONFIRMED` (captured from the actual watch),
-`LIKELY` (public research or strong heuristic, not validated on this device),
-`UNKNOWN` (guessed or never verified).
+- **CONFIRMED BY ACTUAL WATCH** — captured on-device by this diagnostic app (log/export proves it).
+- **PUBLICLY DOCUMENTED** — vendor documentation or Bluetooth SIG specifications.
+- **COMMUNITY REPORT** — public reverse-engineering from maintainers/users of other devices.
+- **HYPOTHESIS** — a guess; never presented as fact, never transmitted to the watch.
 
 ---
 
-## CONFIRMED
+## CONFIRMED BY ACTUAL WATCH
 
-- (Nothing yet. This section fills as the diagnostic app captures data.)
+_Nothing yet. This section fills only from captured on-device diagnostics._
 
-## LIKELY (public research — hypotheses only)
+## PUBLICLY DOCUMENTED
 
-- **Noise watches historically pair with the Da Fit app family.** Noise's own support pages for
-  ColorFit models instruct pairing through the "Da Fit" app; newer models use the rebranded
-  "NoiseFit" app. Source: gonoise.com support articles.
-- **Da Fit watches speak the MOYOUNG / MOYOUNG-V2 protocol** (Gadgetbridge documentation &
-  `MoyoungConstants.java`, AGPL, krzys_h / Freeyourgadget Gadgetbridge):
-  - GATT service: `0000feea-0000-1000-8000-00805f9b34fb`
-  - Characteristic `0000fee2-…` **DATA_OUT** (phone→watch writes), `0000fee3-…` **DATA_IN** (watch→phone notifications), `0000fee1-…` steps, `fee5/fee6` "special", `fee7/fee8` ECG variants.
-  - Packet framing (V2): `FE EA | sizeHi+32 sizeLo | cmd | payload…`, where `size` counts
-    UUID+size+cmd bytes (empty-payload command ⇒ size=5). MTU=20 legacy variant uses
-    `FE EA 16 len cmd …`.
-  - Protocol version (V1 vs V2) is detected by reading the **manufacturer name** characteristic
-    (`0x2A29` in Device Information service `0x180A`): values like `MOYOUNG` / `MOYOUNG-V2`.
-  - Some find-watch / find-phone / shutdown commands exist in that family (e.g. find-watch cmd `97`),
-    but availability varies per firmware — treat as UNKNOWN for the Caliber.
-- **Standard SIG services are worth reading first** on any watch of this family (Gadgetbridge notes):
-  Device Information `0x180A` (manufacturer `0x2A29`, model `0x2A24`, serial `0x2A25`,
-  firmware `0x2A26`), Battery `0x180F` / Battery Level `0x2A19`. These are read-only and safe.
-- Noise manuals mention the NoiseFit app showing a **QR on the watch for app binding** and a
-  separate BT-call radio. The exact QR content is undocumented → captured raw by the app.
-- General BLE methodology for capturing the official protocol: Android "Bluetooth HCI snoop log"
-  + bugreport (btsnoop) + Wireshark — standard practice for the next research phase. **No
-  such capture exists for the Caliber 2881 yet.**
+- Standard GATT semantics: services/characteristics/descriptors, properties
+  (READ/WRITE/WRITE_NO_RESPONSE/NOTIFY/INDICATE), CCCD `0x2902` for subscriptions.
+  (Bluetooth Core Spec — GATT.)
+- LE Advertisement Data structure format `[len][type][data]` and AD type assignments used
+  by `ble/AdvertisementParser` (Bluetooth Core Spec — CSS / assigned numbers).
+- SIG-assigned service/characteristic names used for labeling in `ble/GattExplorer`
+  (e.g. 0x180A Device Information, 0x2A26 Firmware Revision, 0x180F/0x2A19 Battery).
+- Android permission model: `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT` on API 31+; legacy
+  `BLUETOOTH`/`BLUETOOTH_ADMIN` install-time + runtime location for scan results on
+  API 23–30. (Android developer docs.)
 
-## UNKNOWN (do not assume)
+## COMMUNITY REPORT (other devices — may or may not apply to 2881)
 
-- Whether 2881/R204.5.8 exposes `0xFEEA` at all.
-- Whether the Caliber requires NoiseFit app binding/encryption before GATT access (some Noise models
-  link only through the app, and the watch may reject or ignore unbound GATT clients).
-- The QR payload format (MAC? URL? serial? token? encrypted blob?).
-- All opcodes, session-init sequences, find-watch behavior, time sync, notification/call handling.
-- The old repo's `16186f00/01/02-…` UUIDs, PING/ACK bytes, protobuf frames, registration packet —
-  no public source corroborates them; classified as **fabricated guesses, discarded**.
+- **Noise/Da Fit history**: Noise support docs direct ColorFit-series users to the
+  "Da Fit" companion app; newer units to "NoiseFit". ⇒ Noise watches historically run
+  Da Fit-class firmware. (gonoise.com product/support pages.)
+- **Moyoung protocol family** (GitHub/Codeberg — Gadgetbridge, krzys_h et al., AGPL):
+  Da Fit watches speak MOYOUNG/MOYOUNG-V2:
+  - service `0000feea-0000-1000-8000-00805f9b34fb`; write `0000fee2-…` (DATA_OUT),
+    notify `0000fee3-…` (DATA_IN), steps `0000fee1-…`, "special" `fee5/fee6`.
+  - framing: `FE EA | sizeHi+32 sizeLo | cmd | payload…` (V2) or `FE EA 10 len cmd …`
+    (MTU-20 legacy); `size` counts from magic through payload (empty payload ⇒ 5).
+  - family id: reading Manufacturer Name (`0x2A29`) returns `MOYOUNG`/`MOYOUNG-V2`.
+  - standard services used for real data in that family: Device Information, Battery,
+    sometimes Heart Rate/HID.
+- Noise marketing/support pages state the NoiseFit app shows a QR during binding and that
+  notification features require the app running — no packet-level documentation exists.
 
-## Driver policy (enforced in code)
+## HYPOTHESIS (explicitly NOT evidence)
 
-- `NoiseColorFitCaliber2881Driver` advertises identification heuristics and a read-only GATT
-  vocabulary. **It builds no command packets.** Any `buildCommand()` call returns an
-  `Unsupported` result shown to the user as *"Not yet supported on this firmware."*
-- The Moyoung-family codec (`protocol/PacketEncoder`, `protocol/PacketDecoder`) is pure Kotlin used
-  by unit tests and by the diagnostic log to *label* (never act on) hypotheses about incoming bytes.
-- `BleConnection` exposes no characteristic-value write API in diagnostic mode.
+- That the Caliber 2881 exposes the 0xFEEA Moyoung service under R204.5.8.
+- That the Caliber QR encodes a MAC address (alternatives: URL, JSON, serial, token,
+  encrypted blob) — to be resolved by captured scans + the app's QR↔BLE correlation.
+- That the pre-audit code's UUIDs (`16186f00/01/02-…-00807f9b34fb`) ever existed on the
+  watch — archived as UNVERIFIED in `protocol/UnverifiedLegacyCatalog.kt` and compared
+  against reality at runtime; the app uses discovered services regardless.
+- All old guessed bytes (PING/ACK_OK/ACK_END, init burst, opcode 0xA1): archived as
+  never-validated; removed from all code paths.
+
+## Driver policy (enforced in code + tests)
+
+- `NoiseColorFitCaliber2881Driver` identifies (advertisement/GATT heuristics with evidence
+  labels) and interprets reads/notifications for display only. `buildCommand()` returns
+  `Unsupported` for ALL capabilities — guarded by `DriverTest`.
+- `BleConnection` has no characteristic-value write API. The only possible mutation is a
+  user-initiated CCCD subscribe/unsubscribe, and it is logged as PHONE→WATCH each time.
+- No developer write tool is exposed anywhere in the UI (stronger than the audit
+  requirement of a hidden DEVELOPER MODE; if one is ever added it must be individually
+  declared here first).

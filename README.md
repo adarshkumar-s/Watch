@@ -28,15 +28,17 @@ A community Android **diagnostic** companion app for the **Noise ColorFit Calibe
 
 ```
 app/src/main/java/com/adarshkumar/omnitrix/
-├── ble/        BleScanner, BleConnection, GattExplorer, GattModel, BlePermissions, DeviceRegistry
-├── devices/    DeviceDriver, NoiseColorFitCaliber2881Driver, FakeCaliberDevice
-├── protocol/   ProtocolFrame, PacketEncoder/Decoder (hypothesis, never transmitted),
-│               ConnectionStateMachine, ProtocolLogger(direction), HexCodec, EvidenceLevel
-├── pairing/    QrPayload, QrParser, QrStore, PairingManager, QrCameraAnalyzer
-├── analysis/   QrBleCorrelation
-├── diag/       DiagnosticLog, DiagnosticExporter
-└── ui/         MainActivity(dashboard), QrScannerActivity, BleScanActivity,
-                GattExplorerActivity, DiagnosticsActivity, CompareActivity, WatchLink
+├── ble/          BleScanner, BleConnection, GattExplorer, AdvertisementParser,
+│                 GattModel, BlePermissions, DeviceRegistry
+├── diagnostics/  DiagnosticLog, DiagnosticExporter, LogEvent (event taxonomy)
+├── pairing/      QrScanner, QrPayloadParser, QrPayload, QrStore,
+│                 PairingManager, PairingState
+├── devices/      DeviceDriver, NoiseColorFitCaliber2881Driver, FakeCaliberDevice
+├── protocol/     ProtocolDecoder, ProtocolEncoder (hypothesis only — never transmitted),
+│                 ProtocolFrame, UnverifiedLegacyCatalog, ConnectionStateMachine, HexCodec
+├── analysis/     QrBleCorrelation
+└── ui/           MainActivity (Dashboard), QrScannerActivity, BleScanActivity,
+                  GattExplorerActivity, DiagnosticsActivity, CompareActivity, WatchLink
 ```
 
 New ColorFit models are added as new drivers under `devices/` without touching BLE or UI code.

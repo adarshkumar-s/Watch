@@ -12,7 +12,7 @@ import com.google.mlkit.vision.common.InputImage
  * distinct value (debounced so a held phone doesn't fire repeatedly). The payload is
  * handed to the UI untouched — parsing/action is the UI's explicit decision.
  */
-class QrCameraAnalyzer(
+class QrScanner(
     private val onPayload: (String) -> Unit,
     private val onError: ((Exception) -> Unit)? = null,
 ) : ImageAnalysis.Analyzer {

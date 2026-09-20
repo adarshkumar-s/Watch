@@ -3,6 +3,7 @@ package com.adarshkumar.omnitrix.ble
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
+import com.adarshkumar.omnitrix.protocol.UnverifiedLegacyCatalog
 import java.util.Locale
 import java.util.UUID
 
@@ -63,6 +64,10 @@ object GattExplorer {
             ?: return null
         return m.groupValues[1].toInt(16)
     }
+
+    /** UNVERIFIED-legacy label, if [uuid] is one of the pre-audit hard-coded UUIDs. */
+    fun legacyLabel(uuid: String): String? =
+        UnverifiedLegacyCatalog.legacyNote(uuid)
 
     fun standardServiceName(uuid: String): String? = when (shortId(uuid)) {
         0x1800 -> "Generic Access"

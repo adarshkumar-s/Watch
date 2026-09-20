@@ -20,10 +20,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.adarshkumar.omnitrix.R
 import com.adarshkumar.omnitrix.ble.BlePermissions
-import com.adarshkumar.omnitrix.diag.DiagnosticExporter
+import com.adarshkumar.omnitrix.diagnostics.DiagnosticExporter
 import com.adarshkumar.omnitrix.pairing.PairingManager
-import com.adarshkumar.omnitrix.pairing.QrCameraAnalyzer
-import com.adarshkumar.omnitrix.pairing.QrParser
+import com.adarshkumar.omnitrix.pairing.QrScanner
+import com.adarshkumar.omnitrix.pairing.QrPayloadParser
 import com.adarshkumar.omnitrix.pairing.QrPayload
 import com.google.android.material.button.MaterialButton
 import java.util.concurrent.Executors
@@ -96,7 +96,7 @@ class QrScannerActivity : ComponentActivity() {
         handleCameraPermission()
     }
 
-    private val analyzer = QrCameraAnalyzer(
+    private val analyzer = QrScanner(
         onPayload = { raw -> runOnUiThread { showResult(raw) } },
         onError = { runOnUiThread { hint.text = "Scanner error — try again" } },
     )
@@ -149,7 +149,7 @@ class QrScannerActivity : ComponentActivity() {
 
     private fun showResult(raw: String) {
         analyzer.enabled = false
-        val parsed = QrParser.parse(raw)
+        val parsed = QrPayloadParser.parse(raw)
         lastParsed = parsed
         // persist every scan automatically for diagnostics (local-only)
         pairing.record(parsed)

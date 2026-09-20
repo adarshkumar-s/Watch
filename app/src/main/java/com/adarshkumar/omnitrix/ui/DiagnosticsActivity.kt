@@ -9,8 +9,11 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import com.adarshkumar.omnitrix.R
-import com.adarshkumar.omnitrix.diag.DiagnosticExporter
-import com.adarshkumar.omnitrix.diag.DiagnosticLog
+import com.adarshkumar.omnitrix.ble.AdvertisementParser
+import com.adarshkumar.omnitrix.ble.DeviceRegistry
+import com.adarshkumar.omnitrix.diagnostics.DiagnosticExporter
+import com.adarshkumar.omnitrix.diagnostics.DiagnosticLog
+import com.adarshkumar.omnitrix.protocol.HexCodec
 import com.google.android.material.button.MaterialButton
 
 /**
@@ -30,6 +33,7 @@ class DiagnosticsActivity : ComponentActivity() {
 
         logView = findViewById(R.id.logText)
         countView = findViewById(R.id.logCount)
+        findViewById<TextView>(R.id.devicePanel).text = renderDevicePanel()
 
         findViewById<MaterialButton>(R.id.logCopy).setOnClickListener {
             copy(DiagnosticLog.render())
@@ -62,6 +66,33 @@ class DiagnosticsActivity : ComponentActivity() {
     private fun render() {
         countView.text = "${DiagnosticLog.size()} entries  •  newest last"
         logView.text = DiagnosticLog.render().ifEmpty { "(no events yet)" }
+    }
+
+    /** DEVICE section: advertisement facts + GATT summary (audit point 2). */
+    private fun renderDevicePanel(): String {
+        val sb = StringBuilder("DEVICE\n")
+        val d = DeviceRegistry.lastConnectedAddress?.let { DeviceRegistry.get(it) }
+            ?: DeviceRegistry.all().firstOrNull()
+        if (d == null) {
+            sb.append("  no device recorded yet — run SCAN BLUETOOTH\n")
+        } else {
+            sb.append("  name: ${d.name ?: "—"}\n")
+            sb.append("  address: ${d.address}\n")
+            sb.append("  rssi: ${d.rssi} dBm  txPower: ${d.txPower ?: "—"}\n")
+            sb.append("  adv services: ${if (d.serviceUuids.isEmpty()) "—" else d.serviceUuids.joinToString()}\n")
+            d.manufacturerDataHex.forEach { (k, v) ->
+                sb.append("  mfr[0x${k.toString(16).padStart(4, '0')}]: $v\n")
+            }
+            d.serviceDataHex.forEach { (k, v) -> sb.append("  svcData[$k]: $v\n") }
+            d.rawAdvHex?.let { raw ->
+                HexCodec.parse(raw)?.let { sb.append(AdvertisementParser.render(it)).append('\n') }
+            }
+        }
+        val snap = DeviceRegistry.lastSnapshot
+        if (snap != null) {
+            sb.append("GATT: ${snap.services.size} service(s) discovered on ${snap.deviceAddress ?: "—"}\n")
+        }
+        return sb.toString().trimEnd()
     }
 
     private fun copy(text: String) {

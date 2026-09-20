@@ -1,6 +1,6 @@
 package com.adarshkumar.omnitrix.analysis
 
-import com.adarshkumar.omnitrix.pairing.QrParser
+import com.adarshkumar.omnitrix.pairing.QrPayloadParser
 import com.adarshkumar.omnitrix.analysis.QrBleCorrelation.BleObservation
 import com.adarshkumar.omnitrix.analysis.QrBleCorrelation.Verdict
 import org.junit.Assert.assertEquals
@@ -22,7 +22,7 @@ class QrBleCorrelationTest {
 
     @Test
     fun `qr mac matching ble address is a MATCH`() {
-        val qr = QrParser.parse("AA:BB:CC:DD:EE:FF")
+        val qr = QrPayloadParser.parse("AA:BB:CC:DD:EE:FF")
         val findings = QrBleCorrelation.correlate(qr, observation())
         val f = findings.first { it.label.contains("MAC") }
         assertEquals(Verdict.MATCH, f.verdict)
@@ -30,7 +30,7 @@ class QrBleCorrelationTest {
 
     @Test
     fun `qr mac not matching ble address is NO_MATCH, not a guess`() {
-        val qr = QrParser.parse("11:22:33:44:55:66")
+        val qr = QrPayloadParser.parse("11:22:33:44:55:66")
         val findings = QrBleCorrelation.correlate(qr, observation())
         val f = findings.first { it.label.contains("MAC") }
         assertEquals(Verdict.NO_MATCH, f.verdict)
@@ -45,7 +45,7 @@ class QrBleCorrelationTest {
 
     @Test
     fun `qr uuid present in gatt services is a MATCH`() {
-        val qr = QrParser.parse("0000feea-0000-1000-8000-00805f9b34fb")
+        val qr = QrPayloadParser.parse("0000feea-0000-1000-8000-00805f9b34fb")
         val findings = QrBleCorrelation.correlate(
             qr, observation(gattServices = listOf("0000feea-0000-1000-8000-00805f9b34fb"))
         )
@@ -55,7 +55,7 @@ class QrBleCorrelationTest {
 
     @Test
     fun `caliber name yields device hint finding`() {
-        val qr = QrParser.parse("some-random-payload")
+        val qr = QrPayloadParser.parse("some-random-payload")
         val findings = QrBleCorrelation.correlate(qr, observation())
         assertTrue(findings.any { it.label.contains("name") && it.verdict == Verdict.MATCH })
     }

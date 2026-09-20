@@ -5,9 +5,12 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import com.adarshkumar.omnitrix.R
 import com.adarshkumar.omnitrix.analysis.QrBleCorrelation
+import com.adarshkumar.omnitrix.ble.AdvertisementParser
 import com.adarshkumar.omnitrix.ble.DeviceRegistry
-import com.adarshkumar.omnitrix.pairing.QrParser
+import com.adarshkumar.omnitrix.pairing.QrPayloadParser
 import com.adarshkumar.omnitrix.pairing.QrStore
+import com.adarshkumar.omnitrix.protocol.HexCodec
+import com.adarshkumar.omnitrix.protocol.UnverifiedLegacyCatalog
 import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -33,7 +36,7 @@ class CompareActivity : ComponentActivity() {
 
         // ---- QR DATA ----
         val stored = QrStore(this).latest()
-        val parsed = stored?.let { QrParser.parse(it.raw) }
+        val parsed = stored?.let { QrPayloadParser.parse(it.raw) }
         qrView.text = if (stored == null) {
             "No QR captured yet — use SCAN WATCH QR first."
         } else {
@@ -55,13 +58,19 @@ class CompareActivity : ComponentActivity() {
             else -> devices.take(6).joinToString("\n\n") { d ->
                 buildString {
                     appendLine("${d.name ?: "(unnamed)"}  [${d.address}]")
-                    appendLine("rssi=${d.rssi} dBm  connectable=${d.connectable}")
+                    appendLine("rssi=${d.rssi} dBm  txPower=${d.txPower ?: "—"}  connectable=${d.connectable}")
                     if (d.serviceUuids.isNotEmpty())
                         appendLine("adv services: ${d.serviceUuids.joinToString()}")
                     d.manufacturerDataHex.forEach { (k, v) ->
                         appendLine("mfr 0x${k.toString(16).padStart(4, '0')}: $v")
                     }
                     d.serviceDataHex.forEach { (k, v) -> appendLine("svcData $k: $v") }
+                    d.rawAdvHex?.let { raw ->
+                        appendLine("raw adv bytes: $raw")
+                        HexCodec.parse(raw)?.let { parsed ->
+                            appendLine(AdvertisementParser.render(parsed))
+                        }
+                    }
                 }.trim()
             }
         }
@@ -77,6 +86,15 @@ class CompareActivity : ComponentActivity() {
                 appendLine()
                 appendLine("GATT services: ${it.services.size}")
                 it.services.forEach { s -> appendLine("  ${s.uuid}") }
+                appendLine()
+                appendLine("LEGACY UUIDS (UNVERIFIED, never sent):")
+                for (lu in UnverifiedLegacyCatalog.uuidAssumptions) {
+                    val present = it.findService(lu.uuid) != null ||
+                        it.characteristic(lu.uuid) != null
+                    appendLine("  ${lu.uuid} (${lu.role}): " +
+                        if (present) "PRESENT — still UNVERIFIED as protocol"
+                        else "ABSENT — relying on discovered services")
+                }
             }
         }.trim()
 

@@ -38,6 +38,10 @@ object BlePermissions {
             ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
         }
 
+    /** Pure form for unit tests: what remains ungranted at [sdk] given [isGranted]. */
+    fun missing(sdk: Int, isGranted: (String) -> Boolean): List<String> =
+        required(sdk).filterNot(isGranted)
+
     fun allGranted(context: Context): Boolean = missing(context).isEmpty()
 
     fun hasScanPermission(context: Context): Boolean =

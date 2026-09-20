@@ -17,7 +17,7 @@ package com.adarshkumar.omnitrix.protocol
  * characteristic-value write API in diagnostic mode. Do not transport-encode anything
  * against the Caliber 2881 until the framing is CONFIRMED.
  */
-object PacketEncoder {
+object ProtocolEncoder {
 
     class FrameException(message: String) : Exception(message)
 
@@ -41,6 +41,6 @@ object PacketEncoder {
 
     /** Interprets bytes as a Moyoung-hypothesis frame. Throws [FrameException] when invalid. */
     fun decodeMoyoungHypothesis(bytes: ByteArray): ProtocolFrame {
-        return PacketDecoder.decode(bytes)
+        return ProtocolDecoder.decode(bytes)
     }
 }

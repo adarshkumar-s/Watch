@@ -1,4 +1,4 @@
-package com.adarshkumar.omnitrix.diag
+package com.adarshkumar.omnitrix.diagnostics
 
 import com.adarshkumar.omnitrix.protocol.Direction
 import java.text.SimpleDateFormat

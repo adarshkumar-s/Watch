@@ -4,7 +4,7 @@ import com.adarshkumar.omnitrix.ble.DiscoveredDevice
 import com.adarshkumar.omnitrix.ble.GattExplorer
 import com.adarshkumar.omnitrix.ble.GattSnapshot
 import com.adarshkumar.omnitrix.protocol.EvidenceLevel
-import com.adarshkumar.omnitrix.protocol.PacketDecoder
+import com.adarshkumar.omnitrix.protocol.ProtocolDecoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 
@@ -107,7 +107,7 @@ object NoiseColorFitCaliber2881Driver : DeviceDriver {
             characteristicUuid.lowercase(Locale.US)
         ) ?: "characteristic ${characteristicUuid.uppercase(Locale.US)}"
         // Decode attempt is an annotation only; the raw hex is what matters.
-        return "$charLabel → ${PacketDecoder.annotate(value)}"
+        return "$charLabel → ${ProtocolDecoder.annotate(value)}"
     }
 
     override fun buildCommand(

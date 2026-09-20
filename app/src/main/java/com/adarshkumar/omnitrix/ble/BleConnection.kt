@@ -12,24 +12,28 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import com.adarshkumar.omnitrix.devices.DeviceDriver
-import com.adarshkumar.omnitrix.diag.DiagnosticLog
+import com.adarshkumar.omnitrix.diagnostics.DiagnosticLog
+import com.adarshkumar.omnitrix.diagnostics.LogEvent
+import com.adarshkumar.omnitrix.pairing.PairingManager
+import com.adarshkumar.omnitrix.pairing.PairingStateMachine
 import com.adarshkumar.omnitrix.protocol.ConnectionEvent
 import com.adarshkumar.omnitrix.protocol.ConnectionState
 import com.adarshkumar.omnitrix.protocol.ConnectionStateMachine
 import com.adarshkumar.omnitrix.protocol.Direction
 import com.adarshkumar.omnitrix.protocol.HexCodec.toHex
-import com.adarshkumar.omnitrix.protocol.PacketDecoder
+import com.adarshkumar.omnitrix.protocol.UnverifiedLegacyCatalog
 
 /**
  * GATT client for the diagnostic milestone.
  *
- * ⚠ SAFETY INVARIANT (Phase 2/8):
- * There is INTENTIONALLY NO characteristic-value write API here. The only mutation this
- * class can ever perform against the watch is a CCCD subscribe/unsubscribe, and only
- * when the user explicitly toggles notifications on a characteristic. Session-init
- * frames, PINGs, ACKs, opcodes — none of that exists in this codebase.
- *
- * All traffic is logged with PHONE→WATCH / WATCH→PHONE direction tags.
+ * ⚠ SAFETY INVARIANTS (audit points 1/6):
+ * 1. There is INTENTIONALLY NO characteristic-value write API here — no PING,
+ *    no ACK_OK/ACK_END, no registration/initialization frames, no find-watch
+ *    opcode, nothing automatic after connection.
+ * 2. The only GATT mutation ever performed is a CCCD subscribe/unsubscribe, and
+ *    only when the user explicitly toggles notifications on a characteristic.
+ * 3. Incoming bytes are logged as RX_PACKET with raw hex; meaning is never fabricated
+ *    (hypothesis annotations are labeled as such).
  */
 @SuppressLint("MissingPermission") // every entry point checks BlePermissions first
 class BleConnection(
@@ -75,7 +79,7 @@ class BleConnection(
 
     fun connect(target: BluetoothDevice): Boolean {
         if (!BlePermissions.hasConnectPermission(context)) {
-            DiagnosticLog.info("GATT", "connect refused: BLUETOOTH_CONNECT missing")
+            DiagnosticLog.info(LogEvent.ERROR, "connect refused: BLUETOOTH_CONNECT missing")
             return false
         }
         dispatch(ConnectionEvent.CONNECT_REQUESTED, "connect requested")
@@ -83,7 +87,7 @@ class BleConnection(
         device = target
         DeviceRegistry.lastConnectedAddress = runCatching { target.address }.getOrNull()
         val name = runCatching { target.name }.getOrNull() ?: "(no name)"
-        DiagnosticLog.info("GATT", "Connecting to $name [${target.address}] (read/discovery mode)")
+        DiagnosticLog.info(LogEvent.CONNECTING, "Connecting to $name [${target.address}] (read/discovery mode)")
         gatt = target.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
         notifyState("connecting to $name")
         return true
@@ -95,7 +99,7 @@ class BleConnection(
         try {
             g.disconnect()
         } catch (se: SecurityException) {
-            DiagnosticLog.info("GATT", "disconnect SecurityException: ${se.message}")
+            DiagnosticLog.info(LogEvent.ERROR, "disconnect SecurityException: ${se.message}")
         }
     }
 
@@ -111,16 +115,15 @@ class BleConnection(
 
     /** Enqueue a READ — only allowed on characteristics that advertise READ. */
     fun readCharacteristic(uuid: String) {
-        val g = gatt ?: return
         val characteristic = findCharacteristic(uuid) ?: run {
-            DiagnosticLog.info("GATT", "read refused: characteristic $uuid not found")
+            DiagnosticLog.info(LogEvent.ERROR, "read refused: characteristic $uuid not found")
             return
         }
         if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_READ == 0) {
-            DiagnosticLog.info("GATT", "read refused: $uuid has no READ property")
+            DiagnosticLog.info(LogEvent.ERROR, "read refused: $uuid has no READ property")
             return
         }
-        g.let { enqueue(Op.ReadCharacteristic(uuid)) }
+        enqueue(Op.ReadCharacteristic(uuid))
     }
 
     /** Enqueue a CCCD subscribe/unsubscribe — the ONLY watch-destined write, user-gated. */
@@ -130,7 +133,7 @@ class BleConnection(
         val supports = props and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0 ||
             props and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0
         if (!supports) {
-            DiagnosticLog.info("GATT", "subscription refused: $uuid is not notifiable")
+            DiagnosticLog.info(LogEvent.ERROR, "subscription refused: $uuid is not notifiable")
             return
         }
         enqueue(Op.SetNotification(uuid, enable))
@@ -151,7 +154,7 @@ class BleConnection(
 
     private fun enqueue(op: Op) {
         if (!isConnected()) {
-            DiagnosticLog.info("GATT", "op dropped (not connected): ${op.tag}")
+            DiagnosticLog.info(LogEvent.ERROR, "op dropped (not connected): ${op.tag}")
             return
         }
         opQueue.addLast(op)
@@ -167,7 +170,7 @@ class BleConnection(
             is Op.ReadCharacteristic -> {
                 val c = findCharacteristic(op.uuid)
                 if (c == null) { false } else {
-                    DiagnosticLog.tx("GATT", "PHONE → WATCH: read request for ${op.uuid}")
+                    DiagnosticLog.tx(LogEvent.READ_REQUEST, "PHONE → WATCH: read request ${op.uuid}")
                     @Suppress("DEPRECATION")
                     g.readCharacteristic(c)
                 }
@@ -186,7 +189,7 @@ class BleConnection(
                             BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                         else BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
                         DiagnosticLog.tx(
-                            "GATT",
+                            if (op.enable) LogEvent.NOTIFICATION_ENABLED else LogEvent.NOTIFICATION_DISABLED,
                             "PHONE → WATCH: CCCD ${if (op.enable) "subscribe" else "unsubscribe"} on ${op.uuid} (user-requested)"
                         )
                         if (Build.VERSION.SDK_INT >= 33) g.writeDescriptor(d, value)
@@ -200,12 +203,12 @@ class BleConnection(
                 }
             }
             is Op.ReadRssi -> {
-                DiagnosticLog.tx("GATT", "PHONE → WATCH: read remote RSSI")
+                DiagnosticLog.tx(LogEvent.READ_REQUEST, "PHONE → WATCH: read remote RSSI")
                 g.readRemoteRssi()
             }
         }
         if (!started) {
-            DiagnosticLog.info("GATT", "op failed to start: ${op.tag}")
+            DiagnosticLog.info(LogEvent.ERROR, "op failed to start: ${op.tag}")
             activeOp = null
             pump()
             return
@@ -222,7 +225,7 @@ class BleConnection(
     private fun armWatchdog(op: Op) {
         cancelWatchdog()
         val r = Runnable {
-            DiagnosticLog.info("GATT", "op timed out after 8s: ${op.tag}")
+            DiagnosticLog.info(LogEvent.ERROR, "op timed out after 8s: ${op.tag}")
             activeOp = null
             pump()
         }
@@ -243,21 +246,23 @@ class BleConnection(
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     DiagnosticLog.info(
-                        "GATT",
+                        LogEvent.CONNECTED,
                         "GATT connected (status=$status) — starting service discovery"
                     )
                     dispatch(ConnectionEvent.GATT_CONNECTED, "connected")
+                    PairingManager.emit(PairingStateMachine.Event.GATT_CONNECTED)
                     notifyState("connected — discovering services")
                     if (!g.discoverServices()) {
-                        DiagnosticLog.info("GATT", "discoverServices() failed to start")
+                        DiagnosticLog.info(LogEvent.ERROR, "discoverServices() failed to start")
                         dispatch(ConnectionEvent.SERVICES_DISCOVERY_FAILED, "discovery failed to start")
                     } else {
-                        ConnectionStateMachine.transition(state, ConnectionEvent.SERVICES_DISCOVERY_STARTED)
+                        DiagnosticLog.info(LogEvent.SERVICE_DISCOVERY, "service discovery started")
                     }
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
-                    DiagnosticLog.info("GATT", "GATT disconnected (status=$status)")
+                    DiagnosticLog.info(LogEvent.DISCONNECTED, "GATT disconnected (status=$status)")
                     dispatch(ConnectionEvent.GATT_DISCONNECTED, "disconnected (status=$status)")
+                    PairingManager.emit(PairingStateMachine.Event.GATT_DISCONNECTED)
                     opQueue.clear(); cancelWatchdog(); activeOp = null
                     closeGattOnly()
                     main.post { listener?.onStateChanged(state, "disconnected") }
@@ -267,7 +272,7 @@ class BleConnection(
 
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
-                DiagnosticLog.info("GATT", "service discovery FAILED (status=$status)")
+                DiagnosticLog.info(LogEvent.ERROR, "service discovery FAILED (status=$status)")
                 dispatch(ConnectionEvent.SERVICES_DISCOVERY_FAILED, "discovery failed ($status)")
                 return
             }
@@ -279,18 +284,28 @@ class BleConnection(
             snapshot = snap
             DeviceRegistry.setSnapshot(snap)
             DeviceRegistry.resetConnectionFacts()
-            DiagnosticLog.info("GATT", "Service discovery complete: ${snap.services.size} service(s)")
+            DiagnosticLog.info(LogEvent.SERVICE_DISCOVERY, "discovery complete: ${snap.services.size} service(s)")
             for (s in snap.services) {
                 val label = GattExplorer.standardServiceName(s.uuid)?.let { " <$it>" } ?: ""
-                DiagnosticLog.info("GATT", "Service ${s.uuid}$label (${s.characteristics.size} chars)")
+                DiagnosticLog.info(LogEvent.SERVICE_FOUND, "Service ${s.uuid}$label (${s.characteristics.size} chars)")
                 for (c in s.characteristics) {
-                    DiagnosticLog.info("GATT", "  Char ${c.uuid} [${c.properties.joinToString(",")}]")
+                    DiagnosticLog.info(LogEvent.CHARACTERISTIC_FOUND, "  Char ${c.uuid} [${c.properties.joinToString(",")}]")
                 }
             }
+            // Compare UNVERIFIED legacy UUIDs against reality — report, never gate on them.
+            for (legacy in UnverifiedLegacyCatalog.uuidAssumptions) {
+                val present = snap.findService(legacy.uuid) != null ||
+                    snap.characteristic(legacy.uuid) != null
+                DiagnosticLog.info(
+                    LogEvent.LEGACY,
+                    "UNVERIFIED legacy ${legacy.role} ${legacy.uuid}: ${if (present) "PRESENT" else "ABSENT"}"
+                )
+            }
             driver.matchByGatt(snap)?.let {
-                DiagnosticLog.info("DRIVER", "identification: ${it.reason} [${it.confidence}]")
+                DiagnosticLog.info(LogEvent.DRIVER, "identification: ${it.reason} [${it.confidence}]")
             }
             dispatch(ConnectionEvent.SERVICES_DISCOVERED, "ready")
+            PairingManager.emit(PairingStateMachine.Event.SERVICES_EXPLORED)
             main.post {
                 listener?.onStateChanged(state, "service discovery complete")
                 listener?.onSnapshot(snap)
@@ -315,15 +330,14 @@ class BleConnection(
         private fun handleRead(uuid: String, value: ByteArray?, status: Int) {
             val op = activeOp as? Op.ReadCharacteristic
             if (op == null || !op.uuid.equals(uuid, ignoreCase = true)) {
-                // duplicate/stale callback (both API signatures) — ignore
-                return
+                return  // duplicate/stale callback (both API signatures) — ignore
             }
             completeActiveOp()
             val bytes = value ?: byteArrayOf()
             val hex = bytes.toHex()
             val interpretation = driver.interpretRead(uuid, bytes)
             DiagnosticLog.rx(
-                "GATT",
+                LogEvent.READ_RESPONSE,
                 "WATCH → PHONE: read response $uuid status=$status value=[$hex]" +
                     (interpretation?.let { " | ${it.entries.joinToString()}" } ?: "")
             )
@@ -348,9 +362,10 @@ class BleConnection(
 
         private fun handleNotification(uuid: String, value: ByteArray?) {
             val bytes = value ?: return
+            // RX raw hex first; hypothesis annotation is explicitly labeled, never asserted.
             DiagnosticLog.rx(
-                "NOTIFY",
-                "WATCH → PHONE: $uuid → ${driver.interpretNotification(uuid, bytes)} | raw=[${bytes.toHex()}]"
+                LogEvent.RX_PACKET,
+                "WATCH → PHONE: $uuid raw=[${bytes.toHex()}] | ${driver.interpretNotification(uuid, bytes)}"
             )
             main.post { listener?.onNotification(uuid, bytes) }
         }
@@ -362,15 +377,14 @@ class BleConnection(
             completeActiveOp()
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 val charUuid = descriptor.characteristic.uuid.toString()
-                if (op.enable) {
-                    DiagnosticLog.info("GATT", "Notification enabled on $charUuid")
-                } else {
-                    DiagnosticLog.info("GATT", "Notification disabled on $charUuid")
-                }
+                DiagnosticLog.info(
+                    if (op.enable) LogEvent.NOTIFICATION_ENABLED else LogEvent.NOTIFICATION_DISABLED,
+                    "Notification ${if (op.enable) "enabled" else "disabled"} on $charUuid (confirmed by watch)"
+                )
                 updateSnapshot(charUuid, null, notifyEnabled = op.enable)
                 main.post { listener?.onSubscriptionChanged(charUuid, op.enable) }
             } else {
-                DiagnosticLog.info("GATT", "CCCD write failed for ${op.uuid} (status=$status)")
+                DiagnosticLog.info(LogEvent.ERROR, "CCCD write failed for ${op.uuid} (status=$status)")
             }
         }
 
@@ -378,7 +392,7 @@ class BleConnection(
             if (activeOp !is Op.ReadRssi) return
             completeActiveOp()
             DeviceRegistry.lastRssi = rssi
-            DiagnosticLog.rx("GATT", "WATCH → PHONE: RSSI = $rssi dBm")
+            DiagnosticLog.rx(LogEvent.READ_RESPONSE, "WATCH → PHONE: RSSI = $rssi dBm")
             main.post { listener?.onRssi(rssi) }
         }
     }
@@ -403,7 +417,7 @@ class BleConnection(
     private fun dispatch(event: ConnectionEvent, note: String) {
         val next = ConnectionStateMachine.transition(state, event)
         if (next != state) {
-            DiagnosticLog.log(Direction.LOCAL, "STATE", "${state} → ${next} ($note)")
+            DiagnosticLog.log(Direction.LOCAL, LogEvent.STATE, "${state} → ${next} ($note)")
             state = next
         }
     }
@@ -416,7 +430,7 @@ class BleConnection(
         try {
             gatt?.close()
         } catch (se: SecurityException) {
-            DiagnosticLog.info("GATT", "gatt.close SecurityException: ${se.message}")
+            DiagnosticLog.info(LogEvent.ERROR, "gatt.close SecurityException: ${se.message}")
         }
         gatt = null
     }

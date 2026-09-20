@@ -1,11 +1,11 @@
 package com.adarshkumar.omnitrix.protocol
 
 /**
- * Decode-side of the Moyoung-family framing hypothesis. See [PacketEncoder] for the big
+ * Decode-side of the Moyoung-family framing hypothesis. See [ProtocolEncoder] for the big
  * safety warning — this NEVER decides that a packet "is" Moyoung; it only reports whether
  * the byte pattern is *consistent* with that hypothesis so diagnostics can label it.
  */
-object PacketDecoder {
+object ProtocolDecoder {
 
     sealed class Result {
         /** Decoded cleanly under the hypothesis. */
@@ -21,8 +21,8 @@ object PacketDecoder {
      */
     fun decode(bytes: ByteArray): ProtocolFrame = when (val r = analyze(bytes)) {
         is Result.Valid -> r.frame
-        is Result.Malformed -> throw PacketEncoder.FrameException("malformed frame: ${r.reason}")
-        is Result.NotThisProtocol -> throw PacketEncoder.FrameException("not a Moyoung-style frame")
+        is Result.Malformed -> throw ProtocolEncoder.FrameException("malformed frame: ${r.reason}")
+        is Result.NotThisProtocol -> throw ProtocolEncoder.FrameException("not a Moyoung-style frame")
     }
 
     /** Non-throwing analysis for the diagnostic annotator. */

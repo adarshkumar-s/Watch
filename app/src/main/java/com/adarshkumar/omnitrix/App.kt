@@ -2,7 +2,7 @@ package com.adarshkumar.omnitrix
 
 import android.app.Application
 import android.content.pm.PackageManager
-import com.adarshkumar.omnitrix.diag.DiagnosticLog
+import com.adarshkumar.omnitrix.diagnostics.DiagnosticLog
 
 class App : Application() {
 

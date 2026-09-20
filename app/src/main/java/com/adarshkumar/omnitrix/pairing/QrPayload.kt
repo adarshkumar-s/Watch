@@ -22,9 +22,10 @@ data class QrPayload(
         HEX("Hex data"),
         BASE64("Base64 data"),
         KEY_VALUE("Key=value pairs"),
-        PLAIN_TEXT("Plain text"),
+        TEXT("Text"),
+        UNKNOWN("Unknown"),
         EMPTY("Empty"),
     }
 
-    fun primaryFormat(): Format = formats.firstOrNull() ?: Format.PLAIN_TEXT
+    fun primaryFormat(): Format = formats.firstOrNull() ?: Format.TEXT
 }

@@ -59,6 +59,25 @@ All of it. The only protocol material retained anywhere in the new codebase live
 | Fire-and-forget writes with sleeps | command spam, queue overflows | strict op queue; no value writes at all |
 | QR → auto-connect + session init | auto-executing scanned data | QR is captured, parsed, displayed, stored; no side effects |
 
+## 7b. Addendum — second user audit (2026-09-19 rev 2)
+
+The user re-audited and flagged the pre-rebuild `MainActivity` (`70260e3`) — that file
+was already fully replaced before this audit round; this revision closes the remaining
+gaps so the checklist is unambiguous:
+
+- Legacy UUIDs/packets are **preserved as UNVERIFIED data** (`protocol/UnverifiedLegacyCatalog.kt`)
+  instead of silently deleted; each discovery logs PRESENT/ABSENT for them.
+- Log event taxonomy canonicalized (`diagnostics/LogEvent`): SCAN_STARTED, DEVICE_FOUND,
+  CONNECTING, CONNECTED, SERVICE_DISCOVERY, SERVICE_FOUND, CHARACTERISTIC_FOUND,
+  NOTIFICATION_ENABLED, DISCONNECTED, ERROR, RX_PACKET (raw only).
+- `ble/AdvertisementParser` captures raw advertisement bytes (parse + render; malformed tolerated).
+- Diagnostics screen gained a DEVICE panel (name/address/RSSI/advertisement facts).
+- Package/file layout aligned to the requested architecture (`diagnostics/`,
+  `pairing/QrScanner`, `pairing/QrPayloadParser`, `pairing/PairingState`,
+  `protocol/ProtocolDecoder`, `protocol/ProtocolEncoder`).
+- New unit tests: AdvertisementParserTest, BlePermissionsTest (denial paths),
+  PairingStateMachineTest, UnverifiedLegacyCatalogTest, QR UNKNOWN(binary) classification.
+
 ## 7. Compile / runtime problems fixed
 
 1. Missing `ACCESS_FINE_LOCATION`/`ACCESS_COARSE_LOCATION` for Android ≤ 11 → added (`maxSdkVersion=30`).

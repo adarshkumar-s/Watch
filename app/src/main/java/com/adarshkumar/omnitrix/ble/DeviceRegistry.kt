@@ -11,6 +11,7 @@ data class DiscoveredDevice(
     var manufacturerDataHex: Map<Int, String> = emptyMap(), // companyId -> hex
     var serviceUuids: List<String> = emptyList(),
     var serviceDataHex: Map<String, String> = emptyMap(),   // service uuid -> hex
+    var rawAdvHex: String? = null,                          // raw AD payload (getBytes)
     var lastSeenMillis: Long = 0L,
     var connectable: Boolean = true,
 )
@@ -45,6 +46,7 @@ object DeviceRegistry {
                 existing.manufacturerDataHex = device.manufacturerDataHex
                 existing.serviceUuids = device.serviceUuids
                 existing.serviceDataHex = device.serviceDataHex
+                existing.rawAdvHex = device.rawAdvHex ?: existing.rawAdvHex
                 existing.lastSeenMillis = device.lastSeenMillis
                 existing.connectable = device.connectable
             }
