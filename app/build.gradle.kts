@@ -38,11 +38,19 @@ android {
     }
 }
 
-// Name the diagnostic APK per project convention: OMNITRIX-debug.apk
+// Name the diagnostic APK per project convention: OMNITRIX-debug.apk.
+// The concrete output type differs by AGP version, so resolve the setter
+// reflectively — any failure degrades to the default file name (never a
+// configuration error), and CI performs an authoritative rename as well.
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.outputs.forEach { output ->
-            output.outputFileName.set("OMNITRIX-debug.apk")
+            runCatching {
+                val getter = output.javaClass.getMethod("getOutputFileName")
+                @Suppress("UNCHECKED_CAST")
+                (getter.invoke(output) as? org.gradle.api.provider.Property<String>)
+                    ?.set("OMNITRIX-debug.apk")
+            }
         }
     }
 }
