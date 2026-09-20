@@ -51,7 +51,7 @@ data class GattSnapshot(
             GattExplorer.standardServiceName(s.uuid)?.let { sb.append("  <").append(it).append(">") }
             sb.append('\n')
             for (c in s.characteristics) {
-                sb.append("  CHAR ${c.uuid}  [${c.properties.joinToString(\",\")}]")
+                sb.append("  CHAR ${c.uuid}  [" + c.properties.joinToString(",") + "]")
                 GattExplorer.standardCharacteristicName(c.uuid)?.let { sb.append("  <").append(it).append(">") }
                 c.lastReadHex?.let { sb.append("  value=").append(it) }
                 sb.append('\n')
