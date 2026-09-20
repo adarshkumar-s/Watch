@@ -26,7 +26,7 @@ object FakeCaliberDevice {
         serviceDataHex = emptyMap(),
         // AD: Flags, Complete Name, mfr(0x0A0A)="moyoung-v2", Complete UUID16 list (0xFEEA)
         rawAdvHex = "020106" + "1109" + "436F6C6F724669742043616C69626572" +
-            "0CFF0A0A6D6F796F756E672D7632" + "0303EAFE",
+            "0DFF0A0A6D6F796F756E672D7632" + "0303EAFE",
         lastSeenMillis = System.currentTimeMillis(),
         connectable = true,
     )

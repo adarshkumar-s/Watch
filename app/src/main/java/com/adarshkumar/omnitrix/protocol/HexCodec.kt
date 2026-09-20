@@ -21,7 +21,7 @@ object HexCodec {
 
     /** Parses "AA:BB:.." / "AA BB" / "AABB" into bytes. Returns null on any invalid input. */
     fun parse(input: String): ByteArray? {
-        val cleaned = input.replace(Regex("[^0-9A-Fa-f]"), "")
+        val cleaned = input.replace(Regex("[:\\-\\s]"), "")
         if (cleaned.isEmpty() || cleaned.length % 2 != 0) return null
         if (!cleaned.matches(Regex("[0-9A-Fa-f]+"))) return null
         return ByteArray(cleaned.length / 2) { i ->

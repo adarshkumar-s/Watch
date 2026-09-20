@@ -16,7 +16,7 @@ class AdvertisementParserTest {
     fun `parses flags + complete name + manufacturer + uuid16 list`() {
         // 02 01 06 | 11 09 "ColorFit Caliber" | 0C FF 0A0A "moyoung-v2" | 03 03 EAFE
         val r = AdvertisementParser.parse(
-            bytes("0201061109436F6C6F724669742043616C696265720CFF0A0A6D6F796F756E672D76320303EAFE")
+            bytes("0201061109436F6C6F724669742043616C696265720DFF0A0A6D6F796F756E672D76320303EAFE")
         )
         assertTrue(r.ok)
         assertEquals(4, r.fields.size)
