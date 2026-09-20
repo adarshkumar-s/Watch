@@ -26,6 +26,7 @@ jobs:
       # always-run step publishes diagnostics to a commit comment, then fails the job.
       - name: Unit tests (QR parser, packet codec, correlation, state machine, log)
         run: |
+          set -o pipefail  # runner shells must not rely on defaults; rc capture needs this
           mkdir -p /tmp/rc
           rc=0
           ./gradlew :app:testDebugUnitTest --stacktrace 2>&1 | tee /tmp/g-test.log || rc=$?
@@ -33,6 +34,7 @@ jobs:
 
       - name: Android lint
         run: |
+          set -o pipefail  # runner shells must not rely on defaults; rc capture needs this
           mkdir -p /tmp/rc
           rc=0
           ./gradlew :app:lintDebug 2>&1 | tee /tmp/g-lint.log || rc=$?
@@ -40,6 +42,7 @@ jobs:
 
       - name: Assemble diagnostic APK
         run: |
+          set -o pipefail  # runner shells must not rely on defaults; rc capture needs this
           mkdir -p /tmp/rc
           rc=0
           ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee /tmp/g-apk.log || rc=$?
@@ -49,7 +52,9 @@ jobs:
             echo "PWD=$(pwd)"
             echo "--- ls app/build/outputs ---"; ls -laR app/build/outputs 2>&1 | head -40
             echo "--- any apk in repo ---"; find . -name "*.apk" 2>/dev/null | head -10
-            echo "--- tail of gradle log ---"; tail -n 12 /tmp/g-apk.log
+            echo "--- gradle 'what went wrong' ---"
+            grep -nE "What went wrong|Execution failed for task|e: file|error:|Exception" /tmp/g-apk.log | head -30
+            echo "--- tail of gradle log ---"; tail -n 25 /tmp/g-apk.log
           } > /tmp/apk-step-diag.txt 2>&1 || true
 
       - name: Upload OMNITRIX-debug.apk
