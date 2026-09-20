@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/omni_bg">
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+        <TextView android:text="WATCH QR  •  POINT CAMERA AT THE WATCH SCREEN" android:textColor="@color/omni_green" android:textSize="12sp" android:textStyle="bold" android:letterSpacing="0.1" android:gravity="center" android:padding="14dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            <androidx.camera.view.PreviewView android:id="@+id/qrPreview" android:layout_width="match_parent" android:layout_height="match_parent" />
+            <TextView android:id="@+id/qrHint" android:text="ALIGN THE QR IN THE FRAME" android:textColor="@color/omni_green" android:textStyle="bold" android:gravity="center" android:background="#AA080B09" android:paddingTop="16dp" android:paddingBottom="16dp" android:layout_gravity="top" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <LinearLayout android:id="@+id/qrPermissionBlock" android:orientation="vertical" android:gravity="center" android:padding="28dp" android:visibility="gone" android:background="@color/omni_bg" android:layout_width="match_parent" android:layout_height="match_parent">
+                <TextView android:text="Camera permission is needed to scan the watch QR." android:textColor="@color/omni_text" android:textSize="15sp" android:gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/qrGrantCamera" style="@style/OmniButton.Primary" android:text="GRANT CAMERA PERMISSION" android:layout_marginTop="18dp" android:layout_width="wrap_content" android:layout_height="52dp" />
+            </LinearLayout>
+            <ScrollView android:id="@+id/qrResultPanel" android:visibility="gone" android:background="@color/omni_bg" android:layout_width="match_parent" android:layout_height="match_parent">
+                <LinearLayout android:orientation="vertical" android:padding="20dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView style="@style/OmniSectionLabel" android:text="WATCH QR CAPTURED" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/qrRawValue" android:textIsSelectable="true" android:textColor="@color/omni_green" android:textSize="14sp" android:typeface="monospace" android:background="@color/omni_panel" android:padding="14dp" android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/qrFormats" android:textColor="@color/omni_cyan" android:textSize="12sp" android:layout_marginTop="12dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/qrCandidates" android:textColor="@color/omni_text_dim" android:textSize="12sp" android:lineSpacingExtra="3dp" android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/qrConnect" style="@style/OmniButton.Primary" android:text="CONNECT TO WATCH" android:visibility="gone" android:layout_marginTop="18dp" android:layout_width="match_parent" android:layout_height="54dp" />
+                    <LinearLayout android:orientation="horizontal" android:layout_marginTop="10dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+                        <com.google.android.material.button.MaterialButton android:id="@+id/qrCopy" style="@style/OmniButton.Secondary" android:text="COPY" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/qrSave" style="@style/OmniButton.Secondary" android:text="SAVE" android:layout_marginStart="8dp" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/qrExport" style="@style/OmniButton.Secondary" android:text="EXPORT" android:layout_marginStart="8dp" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" />
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/qrRescan" style="@style/OmniButton.Primary" android:text="SCAN ANOTHER" android:layout_marginTop="10dp" android:layout_width="match_parent" android:layout_height="50dp" />
+                </LinearLayout>
+            </ScrollView>
+        </FrameLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/qrClose" style="@style/OmniButton.Secondary" android:text="CLOSE SCANNER" android:layout_margin="16dp" android:layout_width="match_parent" android:layout_height="48dp" />
+    </LinearLayout>
+</FrameLayout>
