@@ -178,9 +178,8 @@ class BleConnection(
             is Op.SetNotification -> {
                 val c = findCharacteristic(op.uuid)
                 val d = c?.getDescriptor(GattExplorer.CCCD_UUID)
-                if (c == null || d == null) {
-                    false
-                } else {
+                var started: Boolean = false
+                if (c != null && d != null) {
                     val okLocal = g.setCharacteristicNotification(c, op.enable)
                     if (!okLocal) {
                         false
@@ -192,15 +191,17 @@ class BleConnection(
                             if (op.enable) LogEvent.NOTIFICATION_ENABLED else LogEvent.NOTIFICATION_DISABLED,
                             "PHONE → WATCH: CCCD ${if (op.enable) "subscribe" else "unsubscribe"} on ${op.uuid} (user-requested)"
                         )
-                        if (Build.VERSION.SDK_INT >= 33) g.writeDescriptor(d, value)
-                        else {
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            started = g.writeDescriptor(d, value)
+                        } else {
                             @Suppress("DEPRECATION")
                             d.value = value
                             @Suppress("DEPRECATION")
-                            g.writeDescriptor(d)
+                            started = g.writeDescriptor(d)
                         }
                     }
                 }
+                started
             }
             is Op.ReadRssi -> {
                 DiagnosticLog.tx(LogEvent.READ_REQUEST, "PHONE → WATCH: read remote RSSI")
