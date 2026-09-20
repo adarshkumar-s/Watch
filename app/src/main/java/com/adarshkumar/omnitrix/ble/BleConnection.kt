@@ -178,12 +178,10 @@ class BleConnection(
             is Op.SetNotification -> {
                 val c = findCharacteristic(op.uuid)
                 val d = c?.getDescriptor(GattExplorer.CCCD_UUID)
-                var started: Boolean = false
+                var started = false
                 if (c != null && d != null) {
                     val okLocal = g.setCharacteristicNotification(c, op.enable)
-                    if (!okLocal) {
-                        false
-                    } else {
+                    if (okLocal) {
                         val value = if (op.enable)
                             BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                         else BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
@@ -191,13 +189,22 @@ class BleConnection(
                             if (op.enable) LogEvent.NOTIFICATION_ENABLED else LogEvent.NOTIFICATION_DISABLED,
                             "PHONE → WATCH: CCCD ${if (op.enable) "subscribe" else "unsubscribe"} on ${op.uuid} (user-requested)"
                         )
-                        if (Build.VERSION.SDK_INT >= 33) {
-                            started = g.writeDescriptor(d, value)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            d.value = value
-                            @Suppress("DEPRECATION")
-                            started = g.writeDescriptor(d)
+                        // writeDescriptor's return type changed across API levels (Boolean
+                        // pre-31, BluetoothStatusCodes int since) — the authoritative result
+                        // is the onDescriptorWrite callback, so we ignore the sync return.
+                        started = try {
+                            if (Build.VERSION.SDK_INT >= 33) {
+                                g.writeDescriptor(d, value)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                d.value = value
+                                @Suppress("DEPRECATION")
+                                g.writeDescriptor(d)
+                            }
+                            true
+                        } catch (se: SecurityException) {
+                            DiagnosticLog.info(LogEvent.ERROR, "CCCD write SecurityException: ${se.message}")
+                            false
                         }
                     }
                 }
